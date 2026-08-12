@@ -1,0 +1,458 @@
+# METRO - Cursor Rules
+
+## 1. Contexto do projeto
+
+O METRO (Motor de Extração, Transferência e Replicação de Objetos) é um motor de replicação de dados desenvolvido em Python.
+
+Seu objetivo é realizar Full Load e Incremental Load de dados provenientes de Source Endpoints SQL e NoSQL para Target Endpoints de armazenamento, inicialmente S3 e Local, utilizando Parquet como formato de persistência.
+
+O projeto deve ser preparado para execução local durante desenvolvimento e para execução containerizada/orquestrada em ambientes como AWS ECS.
+
+O METRO não utiliza:
+- CDC
+- leitura de logs de banco
+- replication slots
+- mensageria
+- RabbitMQ
+- banco de dados auxiliar próprio
+
+O processamento dos datasets deve utilizar Polars como core.
+
+---
+
+## 2. Arquitetura
+
+Respeite a arquitetura definida para o projeto.
+
+Conceitos principais:
+
+- Task
+- Table
+- Column
+- Source Endpoint
+- Target Endpoint
+- Query Repository
+- Replication Strategy
+- Watermark Provider
+- Secret Provider
+- Polars DataFrame
+- Parquet
+
+A arquitetura de replicação é:
+
+Replication
+├── Full Load
+└── Incremental
+    ├── Append
+    │   └── MaxValue
+    └── Replace
+        └── Partition
+
+Não introduza novos conceitos arquiteturais sem necessidade.
+
+Antes de criar uma nova abstração, verifique se ela pode ser resolvida utilizando os componentes existentes.
+
+---
+
+## 3. Convenções de código Python
+
+Respeite as convenções padrão do Python.
+
+- Funções e métodos devem utilizar `snake_case`.
+- Variáveis devem utilizar `snake_case`.
+- Classes devem utilizar `PascalCase`.
+- Constantes devem utilizar `UPPER_SNAKE_CASE`.
+- Módulos e arquivos Python devem utilizar `snake_case`.
+- Nomes devem ser descritivos e representar claramente sua responsabilidade.
+
+Evite abreviações desnecessárias.
+
+---
+
+## 4. Stack de tecnologia
+
+### DataFrame
+
+Todo processamento relacionado a datasets/DataFrames deve utilizar Polars.
+
+Não introduza pandas como alternativa para processamento de dados.
+
+Evite conversões desnecessárias entre formatos de DataFrame.
+
+O fluxo preferencial é:
+
+Source
+→ Polars DataFrame
+→ Replication Strategy
+→ Parquet
+→ Target
+
+### Source e Target
+
+Para conexões com Source e Target Endpoints, prefira bibliotecas oficiais ou amplamente utilizadas e específicas da tecnologia.
+
+Exemplos:
+
+- PostgreSQL → Psycopg
+- SQL Server → pymssql
+- AWS/S3 → Boto3
+
+Evite ODBC genérico quando existir uma biblioteca específica adequada para a tecnologia.
+
+Não introduza uma camada genérica de conexão apenas para abstrair bibliotecas específicas.
+
+---
+
+## 5. Source Endpoints
+
+Source Endpoints devem possuir uma interface suficientemente generalista para permitir diferentes tecnologias.
+
+A implementação deve permitir que novos tipos de Source sejam adicionados sem alterar o core de replicação.
+
+O Source é responsável por:
+
+- conexão;
+- autenticação;
+- execução da consulta;
+- paginação, quando necessária;
+- resolução do `query_path`;
+- obtenção dos dados;
+- conversão para Polars.
+
+O Source não deve assumir que a origem é SQL.
+
+Não implemente lógica específica de uma tecnologia diretamente no core do METRO.
+
+Uma implementação específica não deve contaminar a interface base com funcionalidades exclusivas daquela tecnologia.
+
+Entretanto, não force todas as tecnologias a utilizarem exatamente os mesmos mecanismos internos.
+
+Caso uma tecnologia forneça uma operação específica capaz de otimizar o processo, é permitido criar métodos especializados no respectivo Endpoint.
+
+Exemplo conceitual:
+
+Source base:
+    read()
+
+PostgreSQL Source:
+    read()
+    read_with_server_side_cursor()
+
+O core deve depender da interface comum sempre que possível.
+
+---
+
+## 6. Target Endpoints
+
+Target Endpoints devem possuir uma interface suficientemente generalista para permitir diferentes tecnologias de armazenamento.
+
+O Target é responsável pela materialização dos dados.
+
+A implementação deve permitir que novos Targets sejam adicionados sem alterar o core de replicação.
+
+Os Targets iniciais são:
+
+- S3
+- Local
+
+Métodos específicos podem ser implementados quando uma tecnologia oferecer uma forma mais eficiente de executar determinada operação.
+
+Esses métodos devem permanecer encapsulados na implementação específica do Endpoint, sem contaminar a interface base.
+
+---
+
+## 7. Query Path e Query Repository
+
+O conteúdo de queries não deve ser colocado diretamente no YAML da tarefa.
+
+O YAML deve conter apenas uma referência através de `query_path`.
+
+Exemplo:
+
+source:
+  type: postgresql
+  runtime: customer_database
+  query_path: orders.sql
+
+O Query Repository é responsável por localizar e fornecer o conteúdo da query ao Source.
+
+O Source é responsável por interpretar/executar a query.
+
+O METRO não deve tentar interpretar SQL, JavaScript ou qualquer linguagem específica da fonte no core.
+
+Queries específicas de NoSQL podem realizar transformações, filtros, projections, unwinds ou operações equivalentes antes que os dados sejam entregues ao METRO.
+
+O METRO deve receber o resultado como dataset/Polars DataFrame.
+
+---
+
+## 8. Runtime e Secrets
+
+Source e Target possuem um `runtime`.
+
+Exemplo:
+
+source:
+  type: postgresql
+  runtime: customer_database
+
+target:
+  type: s3
+  runtime: data_lake
+
+O `runtime` é o identificador do secret/configuração externa utilizado para conectar ao Endpoint.
+
+Não introduza uma camada intermediária de configuração entre o `runtime` do YAML e o Secret Provider. O valor de `runtime` deve resolver diretamente o secret/configuração externa correspondente.
+
+Credenciais e secrets não devem ser armazenados dentro do contrato de replicação.
+
+A resolução do runtime deve ser feita através de um Secret Provider.
+
+O Secret Provider deve ser selecionado através dos parâmetros de inicialização do METRO.
+
+Exemplo:
+
+metro run --secret-provider local
+
+metro run --secret-provider aws
+
+Não coloque a escolha do Secret Provider dentro de cada contrato de replicação.
+
+O mesmo YAML de replicação deve poder ser executado em diferentes ambientes.
+
+---
+
+## 9. Replication Strategies
+
+A lógica de replicação deve permanecer desacoplada dos Source e Target Endpoints.
+
+Respeite a hierarquia de Replication definida na seção de Arquitetura.
+
+Não implemente lógica de incremental diretamente dentro de um Source ou Target.
+
+A Strategy deve coordenar o comportamento de replicação utilizando as interfaces dos Endpoints.
+
+---
+
+## 10. Watermark
+
+O METRO não deve possuir banco de dados auxiliar próprio.
+
+O estado necessário para execução incremental deve ser abstraído através de um Watermark Provider.
+
+O Watermark Provider pode utilizar serviços externos, como uma API que persista os watermarks em PostgreSQL.
+
+Não acople o core do METRO a PostgreSQL ou qualquer outro banco utilizado pelo serviço externo de watermark.
+
+---
+
+## 11. Polars como fronteira de dados
+
+Após a extração pelo Source, o dado deve ser representado utilizando Polars.
+
+Evite criar abstrações próprias para representar:
+
+- Row
+- Document
+- Record
+
+Esses conceitos não fazem parte do domínio do METRO.
+
+O METRO trabalha com datasets/DataFrames.
+
+Não crie estruturas de domínio que tentem reproduzir internamente a estrutura de documentos de bancos NoSQL.
+
+---
+
+## 12. Responsabilidade dos objetos
+
+Cada objeto deve possuir uma responsabilidade bem definida.
+
+Evite objetos "Deus" que concentrem:
+
+- conexão;
+- extração;
+- transformação;
+- incremental;
+- escrita;
+- watermark;
+- configuração.
+
+Antes de adicionar um método a uma classe, verifique se a responsabilidade realmente pertence àquela classe.
+
+Evite duplicar responsabilidades entre componentes.
+
+---
+
+## 13. Design Patterns
+
+Encoraje o uso de Design Patterns quando eles resolverem um problema real de arquitetura.
+
+Patterns podem ser utilizados para:
+
+- criação de Endpoints;
+- seleção de Replication Strategies;
+- seleção de Secret Providers;
+- seleção de Query Repositories;
+- extensibilidade de Sources e Targets.
+
+Não utilize Design Patterns apenas por formalidade.
+
+Prefira uma implementação simples quando um Pattern não trouxer benefício arquitetural claro.
+
+---
+
+## 14. Exceptions
+
+Encoraje a criação de Exceptions personalizadas quando elas representarem erros relevantes do domínio ou de uma camada específica.
+
+As Exceptions devem possuir responsabilidades claras.
+
+Evite duplicação de tratamento de Exceptions.
+
+Sempre que possível, trate o erro no nível mais baixo capaz de:
+
+- identificar corretamente o problema;
+- adicionar contexto relevante;
+- convertê-lo para uma Exception apropriada.
+
+Evite estruturas como:
+
+try:
+    ...
+except:
+    raise
+
+em múltiplas camadas apenas para repassar a mesma Exception.
+
+Não capture Exceptions genéricas sem necessidade.
+
+Não esconda a causa original do erro.
+
+Quando fizer sentido, preserve o contexto utilizando exception chaining.
+
+---
+
+## 15. Criação de arquivos
+
+Não crie novos arquivos Python sem necessidade.
+
+Antes de criar um novo módulo ou arquivo:
+
+1. Verifique se a responsabilidade pode ser implementada em um módulo existente.
+2. Verifique se o novo arquivo representa uma responsabilidade arquitetural real.
+3. Verifique se a criação do arquivo está alinhada à estrutura definida do projeto.
+
+Não crie arquivos auxiliares, utilitários ou abstrações genéricas apenas para pequenas operações.
+
+Evite criar arquivos "utils.py" ou equivalentes como depósito de funções sem responsabilidade clara.
+
+---
+
+## 16. Alterações na arquitetura
+
+Não altere a arquitetura existente sem necessidade.
+
+Antes de:
+
+- criar uma nova camada;
+- criar uma nova abstração;
+- mover responsabilidades;
+- criar novos tipos de Endpoint;
+- criar novos providers;
+
+avalie se o problema pode ser resolvido utilizando a arquitetura existente.
+
+Mudanças arquiteturais devem ser justificadas pelo problema que resolvem.
+
+---
+
+## 17. Performance
+
+Considere performance desde o início, especialmente porque o METRO trabalhará com grandes datasets.
+
+Evite:
+
+- materialização desnecessária de dados em memória;
+- conversões desnecessárias entre estruturas;
+- loops Python para processamento que possa ser realizado pelo Polars;
+- carregamento completo de datasets quando paginação/batching for adequado;
+- criação de objetos Python para cada registro.
+
+Prefira operações vetorizadas e nativas do Polars.
+
+Sempre que uma tecnologia de Source ou Target fornecer uma forma eficiente de paginação, streaming ou escrita, considere utilizá-la.
+
+Valores de otimização e afins (como `chunk_size` de leitura/escrita, tamanho de batch, paralelismo e equivalentes) devem ser parametrizáveis via configuração do YAML sempre que possível, em vez de ficarem hardcoded.
+
+---
+
+## 18. Configuração
+
+O contrato YAML deve descrever a tarefa de replicação.
+
+Ele não deve conter:
+
+- secrets;
+- credenciais;
+- conteúdo das queries;
+- configuração específica de infraestrutura do ambiente.
+
+Parâmetros de comportamento da tarefa — inclusive valores de otimização como `chunk_size` — podem e devem constar no YAML quando fizerem sentido para a execução.
+
+A configuração de execução do METRO (incluindo a escolha do Secret Provider) deve ser fornecida através de parâmetros de inicialização ou mecanismos externos apropriados.
+
+O motor deve ser capaz de executar uma tarefa através de parâmetros de execução Python/CLI.
+
+Não priorizar adaptações para interfaces gráficas.
+
+---
+
+## 19. Docker e execução
+
+O METRO deve funcionar localmente sem depender obrigatoriamente de Docker durante o desenvolvimento.
+
+Docker deve ser utilizado como mecanismo de empacotamento e execução quando necessário, principalmente visando ambientes de produção.
+
+A arquitetura deve permanecer compatível com execução em ambientes como AWS ECS.
+
+Não introduza dependências de infraestrutura que impeçam a execução local.
+
+---
+
+## 20. Simplicidade
+
+Prefira:
+
+- código simples;
+- baixo acoplamento;
+- alta coesão;
+- interfaces pequenas;
+- responsabilidades claras;
+- composição em vez de herança excessiva;
+- abstrações justificadas.
+
+Não implemente funcionalidades futuras antecipadamente.
+
+Não crie abstrações para problemas que ainda não existem.
+
+O objetivo é construir uma arquitetura extensível sem transformar o METRO em um framework excessivamente complexo.
+
+---
+
+## 21. Regra principal
+
+Antes de implementar qualquer funcionalidade, considere:
+
+1. Qual componente é responsável por isso?
+2. Essa responsabilidade já existe em algum componente?
+3. A implementação está acoplando o core a uma tecnologia específica?
+4. O comportamento pode ser generalizado através de uma interface?
+5. Existe uma implementação específica da tecnologia que pode otimizar o comportamento?
+6. É realmente necessário criar uma nova classe, módulo ou arquivo?
+7. Valores de otimização estão parametrizáveis no YAML quando apropriado?
+8. A solução mantém o fluxo:
+
+Source → Polars → Replication Strategy → Parquet → Target
+
+Sempre preserve as fronteiras arquiteturais do METRO.

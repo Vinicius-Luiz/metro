@@ -19,7 +19,7 @@ O METRO possui uma separação clara entre:
 - **Table** — representa o dataset lógico que será replicado.
 - **Column** — representa metadados das colunas do dataset.
 - **Replication Strategy** — determina como os dados serão replicados.
-- **Checkpoint** — representa o estado de uma execução incremental.
+- **Watermark** — representa o estado de uma execução incremental.
 - **Query Repository** — resolve arquivos de consulta utilizados pelo Source.
 - **Polars** — representa o núcleo de processamento dos datasets dentro do METRO.
 - **Parquet** — formato utilizado para persistência dos dados no Target.

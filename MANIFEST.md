@@ -4,44 +4,35 @@ O fluxo principal de uma tarefa de replicação pode ser representado da seguint
 
 ```mermaid
 flowchart TD
-    A[YAML - Replication Task] --> B[Task]
+    YAML[YAML - Replication Task] --> Task[Task]
 
-    B --> C[Source Endpoint]
-    B --> D[Table]
-    B --> E[Target Endpoint]
-    B --> F[Replication Strategy]
+    Task --> Source[Source Endpoint]
+    Task -.-> Table[Table]
 
-    C --> G{query_path informado?}
+    Source --> QP{query_path informado?}
+    QP -->|Sim| QR[Query Repository]
+    QP -->|Não| DefQ[Query padrão do Source]
 
-    G -->|Sim| H[Query Repository]
-    G -->|Não| I[Query padrão do Source]
+    QR --> Data[Source Data]
+    DefQ --> Data
 
-    H --> C
-    I --> C
+    Data --> Polars[Polars DataFrame]
 
-    C --> J[Source Data]
-    J --> K[Polars DataFrame]
+    Polars --> Mode{Replication Mode}
+    Mode -->|Full Load| FL[Full Load]
+    Mode -->|Incremental| INC[Incremental]
 
-    K --> F
+    INC --> Strat{Strategy}
+    Strat -->|Append| MV[MaxValue]
+    Strat -->|Replace| PT[Partition]
+    INC -.-> CP[Watermark Provider]
 
-    F --> L{Replication Mode}
+    FL --> PQ[Parquet]
+    MV --> PQ
+    PT --> PQ
 
-    L -->|Full Load| M[Full Load]
-    L -->|Incremental| N[Incremental Strategy]
-
-    N --> O{Strategy}
-
-    O -->|Append| P[MaxValue]
-    O -->|Replace| Q[Partition]
-
-    M --> R[Parquet]
-    P --> R
-    Q --> R
-
-    R --> E
-    E --> S[Target Storage]
-
-    N -.-> T[Checkpoint Provider]
+    PQ --> Target[Target Endpoint]
+    Target --> Storage[Target Storage]
 ```
 
 
@@ -306,17 +297,17 @@ replication:
 
 
 
-# Checkpoint
+# Watermark
 
 O METRO não possui um banco de dados auxiliar próprio.
 
-O estado necessário para estratégias incrementais, como watermarks, pode ser obtido através de um componente externo denominado **Checkpoint Provider**.
+O estado necessário para estratégias incrementais, como watermarks, pode ser obtido através de um componente externo denominado **Watermark Provider**.
 
 ```text
 METRO
   │
   ▼
-Checkpoint Provider
+Watermark Provider
   │
   ├── API
   ├── Local
@@ -329,13 +320,13 @@ Por exemplo:
 METRO
   │
   ▼
-Checkpoint API
+Watermark API
   │
   ▼
 PostgreSQL
 ```
 
-O PostgreSQL, nesse caso, pertence à infraestrutura do serviço de checkpoint e **não ao METRO**.
+O PostgreSQL, nesse caso, pertence à infraestrutura do serviço de watermark e **não ao METRO**.
 
 Essa separação permite que o motor permaneça desacoplado de qualquer banco de dados auxiliar.
 
@@ -527,7 +518,7 @@ metro/
 │       └── replace/
 │           └── partition
 │
-├── checkpoint/
+├── watermark/
 │   ├── base
 │   └── api
 │
@@ -588,7 +579,7 @@ O METRO será desenvolvido seguindo alguns princípios:
 - **Full Load e Incremental Load como estratégias de replicação.**
 - **Append/MaxValue e Replace/Partition como estratégias incrementais iniciais.**
 - **Nenhum banco de dados auxiliar dentro do METRO.**
-- **Checkpoint desacoplado através de provider externo.**
+- **Watermark desacoplado através de provider externo.**
 - **Secrets desacoplados através de Secret Providers.**
 - **Queries mantidas externamente ao YAML.**
 - **Source responsável pela extração e preparação dos dados.**
@@ -612,7 +603,7 @@ O METRO será desenvolvido seguindo alguns princípios:
 - [ ] `SourceEndpoint`
 - [ ] `TargetEndpoint`
 - [ ] `ReplicationStrategy`
-- [ ] `CheckpointProvider`
+- [ ] `WatermarkProvider`
 - [ ] `SecretProvider`
 
 
@@ -648,7 +639,7 @@ O METRO será desenvolvido seguindo alguns princípios:
 
 - [ ] Secret Provider Local
 - [ ] AWS Secrets Manager
-- [ ] Checkpoint API
+- [ ] Watermark API
 - [ ] Docker
 - [ ] Execução em AWS ECS
 
