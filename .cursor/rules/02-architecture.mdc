@@ -1,0 +1,38 @@
+---
+description: Conceitos, hierarquia de Replication, Watermark e responsabilidades
+alwaysApply: true
+---
+
+# Arquitetura
+
+Conceitos principais: Task, Table, Column, Source Endpoint, Target Endpoint, Query Repository, Replication Strategy, Watermark Provider, Secret Provider, Polars DataFrame, Parquet.
+
+```text
+Replication
+├── Full Load
+└── Incremental
+    ├── Append
+    │   └── MaxValue
+    └── Replace
+        └── Partition
+```
+
+Não introduza novos conceitos sem necessidade. Antes de criar abstração, verifique se os componentes existentes resolvem.
+
+## Replication Strategies
+
+A lógica de replicação permanece desacoplada de Source e Target. Não implemente incremental dentro de Source/Target. A Strategy coordena o comportamento via interfaces dos Endpoints.
+
+## Watermark
+
+Sem banco auxiliar próprio. Estado incremental via Watermark Provider (pode usar serviço externo, ex.: API com PostgreSQL). Não acople o core ao banco do serviço externo.
+
+## Responsabilidades
+
+Cada objeto com responsabilidade bem definida. Evite objetos "Deus" (conexão + extração + transformação + incremental + escrita + watermark + configuração).
+
+Antes de adicionar método, confirme se a responsabilidade pertence àquela classe. Evite duplicar responsabilidades.
+
+## Alterações
+
+Não altere a arquitetura sem necessidade. Antes de nova camada/abstração, mover responsabilidades ou criar Endpoint/provider: avalie se a arquitetura existente resolve. Mudanças devem ser justificadas pelo problema.

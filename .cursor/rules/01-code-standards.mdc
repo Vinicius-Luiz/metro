@@ -1,0 +1,32 @@
+---
+description: Convenções Python, criação de arquivos, simplicidade e Design Patterns
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Convenções de código Python
+
+- Funções, métodos, variáveis, módulos: `snake_case`
+- Classes: `PascalCase`
+- Constantes: `UPPER_SNAKE_CASE`
+- Nomes descritivos; evite abreviações desnecessárias
+
+## Criação de arquivos
+
+Não crie arquivos Python sem necessidade. Antes:
+
+1. A responsabilidade cabe em um módulo existente?
+2. Representa uma responsabilidade arquitetural real?
+3. Alinha-se à estrutura do projeto?
+
+Evite `utils.py` ou depósitos genéricos de funções sem responsabilidade clara.
+
+## Simplicidade
+
+Prefira: código simples, baixo acoplamento, alta coesão, interfaces pequenas, responsabilidades claras, composição em vez de herança excessiva, abstrações justificadas.
+
+Não implemente funcionalidades futuras antecipadamente. Não crie abstrações para problemas que ainda não existem.
+
+## Design Patterns
+
+Use Patterns quando resolverem um problema real (Endpoints, Strategies, Secret Providers, Query Repositories). Não use por formalidade. Prefira implementação simples quando o Pattern não trouxer benefício claro.

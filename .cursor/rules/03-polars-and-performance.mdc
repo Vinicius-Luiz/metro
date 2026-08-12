@@ -1,0 +1,35 @@
+---
+description: Polars como fronteira de dados e regras de performance
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Polars e performance
+
+## DataFrame
+
+Todo processamento de datasets/DataFrames usa Polars. Não introduza pandas. Evite conversões desnecessárias entre formatos.
+
+Fluxo preferencial:
+
+```text
+Source → Polars DataFrame → Replication Strategy → Parquet → Target
+```
+
+## Fronteira de dados
+
+Após extração pelo Source, o dado é Polars. Não crie abstrações de domínio para Row, Document ou Record. O METRO trabalha com datasets/DataFrames — não reproduza internamente estruturas de documentos NoSQL.
+
+## Performance
+
+Considere performance desde o início (datasets grandes). Evite:
+
+- materialização desnecessária em memória
+- conversões desnecessárias entre estruturas
+- loops Python quando Polars puder processar
+- carregamento completo quando paginação/batching for adequado
+- objetos Python por registro
+
+Prefira operações vetorizadas/nativas do Polars. Use paginação, streaming ou escrita eficiente da tecnologia quando disponível.
+
+Valores de otimização (`chunk_size`, batch, paralelismo etc.) devem ser parametrizáveis via YAML, não hardcoded.

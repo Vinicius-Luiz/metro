@@ -1,0 +1,37 @@
+---
+description: Interfaces e responsabilidades de Source/Target Endpoints e bibliotecas
+globs: "**/sources/**/*.py,**/targets/**/*.py,**/replication/**/*.py"
+alwaysApply: false
+---
+
+# Sources e Targets
+
+## Bibliotecas
+
+Prefira bibliotecas oficiais/específicas da tecnologia:
+
+- PostgreSQL → Psycopg
+- SQL Server → pymssql
+- AWS/S3 → Boto3
+
+Evite ODBC genérico quando houver biblioteca adequada. Não crie camada genérica só para abstrair bibliotecas específicas.
+
+## Source Endpoints
+
+Interface generalista; novos Sources sem alterar o core.
+
+Responsabilidades: conexão, autenticação, execução da consulta, paginação, resolução de `query_path`, obtenção dos dados, conversão para Polars.
+
+O Source não assume origem SQL. Não coloque lógica específica de tecnologia no core.
+
+Não contamine a interface base com funcionalidades exclusivas. Métodos especializados no Endpoint são permitidos para otimizações (ex.: `read_with_server_side_cursor()`). O core depende da interface comum sempre que possível.
+
+Queries NoSQL podem transformar/filtrar/project/unwind antes de entregar ao METRO. O METRO recebe Polars DataFrame. O core não interpreta SQL/JS/linguagem da fonte.
+
+## Target Endpoints
+
+Interface generalista; materializa os dados. Novos Targets sem alterar o core.
+
+Iniciais: S3, Local.
+
+Métodos específicos encapsulados na implementação do Endpoint, sem contaminar a interface base.

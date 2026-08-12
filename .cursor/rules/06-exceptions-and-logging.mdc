@@ -1,0 +1,27 @@
+---
+description: Exceptions de domínio e uso correto de níveis de logging
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Exceptions
+
+Crie Exceptions personalizadas para erros relevantes do domínio ou da camada. Responsabilidades claras; evite duplicação de tratamento.
+
+Trate no nível mais baixo capaz de identificar o problema, adicionar contexto e converter para Exception apropriada.
+
+Evite `try/except: raise` em múltiplas camadas só para repassar. Não capture Exceptions genéricas sem necessidade. Não esconda a causa; use exception chaining quando fizer sentido.
+
+# Logging
+
+Logs comunicam status relevantes — não polua. Se o log não ajuda a entender progresso, resultado ou falha, não registre.
+
+| Nível | Uso |
+| --- | --- |
+| `debug` | Diagnóstico interno (parâmetros, decisões, métricas finas). Não é padrão em produção. |
+| `info` | Ciclo de vida (início/fim de task, tabela, estratégia, watermark ok). |
+| `warning` | Anomalia recuperável/degradada, sem necessariamente interromper. |
+| `error` | Falha que impede conclusão correta de operação/etapa. |
+| `critical` | Falha grave que compromete continuidade do processo/motor. |
+
+Não use `info` para verbosidade de implementação. Não use `error`/`critical` para condições esperadas. Não logue secrets/credenciais/tokens. Evite log por linha em loops quentes — prefira resumos por batch/chunk/etapa.

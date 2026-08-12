@@ -1,0 +1,45 @@
+---
+description: Contratos YAML, query_path, runtime/secrets e parâmetros de execução
+alwaysApply: true
+---
+
+# Contratos YAML
+
+O YAML descreve a tarefa de replicação. **Não** deve conter: secrets, credenciais, conteúdo de queries, configuração de infraestrutura do ambiente.
+
+Parâmetros de comportamento (ex.: `chunk_size`) podem e devem constar no YAML quando fizerem sentido.
+
+Configuração de execução do METRO (ex.: Secret Provider) via parâmetros de inicialização/CLI. Não priorizar interfaces gráficas.
+
+O mesmo YAML deve rodar em ambientes diferentes.
+
+## Query Path
+
+YAML referencia a query via `query_path`; conteúdo fica no Query Repository.
+
+```yaml
+source:
+  type: postgresql
+  runtime: customer_database
+  query_path: orders.sql
+```
+
+Query Repository localiza/fornece o conteúdo; Source interpreta/executa.
+
+## Runtime e Secrets
+
+`runtime` é o identificador do secret/configuração externa do Endpoint.
+
+Não introduza camada intermediária entre `runtime` e Secret Provider — o valor resolve diretamente o secret/config correspondente.
+
+```yaml
+source:
+  type: postgresql
+  runtime: customer_database
+
+target:
+  type: s3
+  runtime: data_lake
+```
+
+Secret Provider escolhido na inicialização (`metro run --secret-provider local|aws`), nunca no contrato de replicação.

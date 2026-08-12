@@ -1,0 +1,14 @@
+---
+description: O METRO não utiliza testes em Python
+alwaysApply: true
+---
+
+# Testes
+
+O METRO **não** utiliza testes em Python (pytest, unittest ou equivalentes).
+
+Não crie suítes de teste, fixtures, mocks de teste nem estrutura `tests/` em Python.
+
+Não proponha cobertura de testes unitários/integrados em Python como parte da implementação.
+
+Validação e verificação devem seguir outros meios definidos pelo projeto (execução manual, contratos, revisão, etc.), não uma camada de testes Python.

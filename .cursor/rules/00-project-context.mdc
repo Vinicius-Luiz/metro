@@ -1,0 +1,35 @@
+---
+description: Contexto do METRO, execução local/ECS e checklist antes de implementar
+alwaysApply: true
+---
+
+# Contexto do projeto
+
+O METRO (Motor de Extração, Transferência e Replicação de Objetos) é um motor de replicação em Python para Full Load e Incremental Load de Sources SQL/NoSQL para Targets (inicialmente S3 e Local), com Parquet como persistência.
+
+Preparar para execução local no desenvolvimento e containerizada/orquestrada (ex.: AWS ECS).
+
+O METRO não utiliza: CDC, leitura de logs de banco, replication slots, mensageria, RabbitMQ, banco auxiliar próprio.
+
+Polars é o core de processamento de datasets.
+
+## Docker e execução
+
+- Funcionar localmente sem depender obrigatoriamente de Docker.
+- Docker para empacotamento/execução (produção), não como requisito do core.
+- Compatível com AWS ECS.
+- Não introduzir dependências de infraestrutura que impeçam execução local.
+
+## Antes de implementar
+
+1. Qual componente é responsável?
+2. Essa responsabilidade já existe?
+3. Está acoplando o core a uma tecnologia específica?
+4. Dá para generalizar via interface?
+5. Existe otimização específica da tecnologia?
+6. É necessário criar nova classe/módulo/arquivo?
+7. Valores de otimização estão no YAML quando apropriado?
+8. Logs são relevantes e no nível adequado?
+9. Mantém o fluxo: Source → Polars → Replication Strategy → Parquet → Target
+
+Preserve as fronteiras arquiteturais do METRO.
