@@ -20,7 +20,11 @@ Evite ODBC genérico quando houver biblioteca adequada. Não crie camada genéri
 
 Interface generalista; novos Sources sem alterar o core.
 
-Responsabilidades: conexão, autenticação, execução da consulta, paginação, resolução de `query_path`, obtenção dos dados, conversão para Polars.
+Responsabilidades: conexão, autenticação, execução da consulta, paginação, resolução de `query_path` **ou query padrão**, obtenção dos dados, conversão para Polars.
+
+Todo Source deve implementar `build_default_query()`. `query_path` é opcional — nenhum Source deve depender dele. Quando ausente, usa-se a query padrão da tecnologia.
+
+`resolve_query()` na base: se há `query_path` → Query Repository; senão → `build_default_query()`.
 
 O Source não assume origem SQL. Não coloque lógica específica de tecnologia no core.
 

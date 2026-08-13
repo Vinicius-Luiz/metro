@@ -1,0 +1,15 @@
+table:
+  schema_name: public
+  name: film
+
+source:
+  type: postgresql
+  runtime: pagila_database
+  query_path: film.sql
+
+target:
+  type: local
+  runtime: development_storage
+
+replication:
+  mode: full_load

@@ -1,0 +1,14 @@
+table:
+  schema_name: public
+  name: actor
+
+source:
+  type: postgresql
+  runtime: pagila_database
+
+target:
+  type: local
+  runtime: development_storage
+
+replication:
+  mode: full_load

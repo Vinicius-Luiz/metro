@@ -1,0 +1,14 @@
+table:
+  schema_name: public
+  name: posts
+
+source:
+  type: postgresql
+  runtime: stackoverflow_database
+
+target:
+  type: local
+  runtime: development_storage
+
+replication:
+  mode: full_load

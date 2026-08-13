@@ -1,0 +1,39 @@
+"""Interface base de Target Endpoints."""
+
+from __future__ import annotations
+
+from abc import abstractmethod
+
+import polars as pl
+
+from metro.core.endpoint import Endpoint
+
+
+class TargetEndpoint(Endpoint):
+    """Contrato para destinos de materialização do METRO.
+
+    Responsável por persistir datasets (Parquet) no storage de destino.
+    """
+
+    def __init__(self, runtime: str, chunk_size: int | None = None) -> None:
+        super().__init__(runtime)
+        self._chunk_size = chunk_size
+
+    @property
+    def chunk_size(self) -> int | None:
+        """Tamanho de chunk/escrita, quando parametrizado."""
+        return self._chunk_size
+
+    @abstractmethod
+    def write(self, dataframe: pl.DataFrame, path: str) -> None:
+        """Materializa o DataFrame no destino informado."""
+
+    def delete_partition(self, path: str) -> None:
+        """Remove uma partição existente no destino.
+
+        Implementações de Replace/Partition devem sobrescrever este método.
+        A implementação padrão indica que a operação não é suportada.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} não implementa delete_partition"
+        )

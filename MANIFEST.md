@@ -405,7 +405,7 @@ O YAML da tarefa permanece agnóstico ao ambiente.
 
 ```yaml
 table:
-  schema: public
+  schema_name: public
   name: products
 
 source:
@@ -426,7 +426,7 @@ replication:
 
 ```yaml
 table:
-  schema: public
+  schema_name: public
   name: customers
 
 source:
@@ -596,31 +596,32 @@ O METRO será desenvolvido seguindo alguns princípios:
 
 ## Core
 
-- [ ] Definição dos contratos do domínio
-- [ ] `Task`
-- [ ] `Table`
-- [ ] `Column`
-- [ ] `SourceEndpoint`
-- [ ] `TargetEndpoint`
-- [ ] `ReplicationStrategy`
+- [x] Definição dos contratos do domínio
+- [x] `Task`
+- [x] `Table`
+- [x] `Column`
+- [x] `SourceEndpoint`
+- [x] `TargetEndpoint`
+- [x] `ReplicationStrategy`
 - [ ] `WatermarkProvider`
-- [ ] `SecretProvider`
+- [x] `SecretProvider`
+- [x] `QueryRepository`
 
 
 
 ## Data Engine
 
-- [ ] Integração com Polars
-- [ ] Full Load
+- [x] Integração com Polars
+- [x] Full Load
 - [ ] Incremental Append / MaxValue
 - [ ] Incremental Replace / Partition
-- [ ] Escrita Parquet
+- [x] Escrita Parquet
 
 
 
 ## Sources
 
-- [ ] PostgreSQL
+- [x] PostgreSQL
 - [ ] MongoDB
 - [ ] Outros SGBDs SQL
 - [ ] Outros bancos NoSQL
@@ -629,7 +630,7 @@ O METRO será desenvolvido seguindo alguns princípios:
 
 ## Targets
 
-- [ ] Local
+- [x] Local
 - [ ] S3
 - [ ] Outros Object Storages
 
@@ -637,7 +638,10 @@ O METRO será desenvolvido seguindo alguns princípios:
 
 ## Infraestrutura
 
-- [ ] Secret Provider Local
+- [x] Secret Provider Local (`.env`)
+- [x] Query Repository Local (`.metro/queries/`)
+- [x] CLI `metro run` (1 tabela por execução)
+- [x] Logging em console + arquivo (`logs/`)
 - [ ] AWS Secrets Manager
 - [ ] Watermark API
 - [ ] Docker
@@ -647,7 +651,9 @@ O METRO será desenvolvido seguindo alguns princípios:
 
 # Status
 
-> **Projeto em fase de definição arquitetural.**
+> **Primeiro fluxo funcional entregue: PostgreSQL → Local (Full Load), via CLI `metro run`.**
+
+Já é possível executar tasks de exemplo Pagila (`tasks/pagila_film.yaml` e `tasks/pagila_actor.yaml`), com ou sem `query_path`, materializando Parquet em `./local` e gerando logs em `./logs`.
 
 O METRO é um novo projeto, inspirado na experiência e nos conceitos desenvolvidos anteriormente no TREMpy, mas com uma arquitetura e objetivo diferentes: substituir a replicação transacional baseada em CDC por um motor de **Full Load e Incremental Load orientado à materialização de datasets em Parquet**.
 
