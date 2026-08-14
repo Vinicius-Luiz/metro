@@ -121,6 +121,8 @@ Table
 │
 ├── schema
 ├── name
+├── target_schema_name
+├── target_name
 └── columns
     ├── Column
     ├── Column
@@ -407,6 +409,8 @@ O YAML da tarefa permanece agnóstico ao ambiente.
 table:
   schema_name: public
   name: products
+  target_schema_name: raw
+  target_name: customer_products
 
 source:
   type: postgresql
@@ -428,6 +432,8 @@ replication:
 table:
   schema_name: public
   name: customers
+  target_schema_name: raw
+  target_name: customer_customers
 
 source:
   type: postgresql
@@ -455,6 +461,8 @@ replication:
 ```yaml
 table:
   name: orders
+  target_schema_name: raw
+  target_name: customer_orders
 
 source:
   type: mongodb
@@ -622,9 +630,9 @@ O METRO será desenvolvido seguindo alguns princípios:
 ## Sources
 
 - [x] PostgreSQL
+- [ ] SQL Server
+- [ ] Oracle
 - [ ] MongoDB
-- [ ] Outros SGBDs SQL
-- [ ] Outros bancos NoSQL
 
 
 
@@ -632,7 +640,6 @@ O METRO será desenvolvido seguindo alguns princípios:
 
 - [x] Local
 - [ ] S3
-- [ ] Outros Object Storages
 
 
 

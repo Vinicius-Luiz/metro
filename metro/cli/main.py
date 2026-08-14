@@ -84,11 +84,16 @@ def _log_task_parameters(task: Task, secret_provider_name: str) -> None:
     strategy = task.replication.strategy
     logger.debug(
         "Parâmetros METRO | secret_provider=%s | table.schema_name=%s | "
-        "table.name=%s | table.qualified_name=%s | table.columns_declared=%s",
+        "table.name=%s | table.qualified_name=%s | table.target_schema_name=%s | "
+        "table.target_name=%s | table.target_dataset_path=%s | "
+        "table.columns_declared=%s",
         secret_provider_name,
         task.table.schema_name,
         task.table.name,
         task.table.qualified_name,
+        task.table.target_schema_name,
+        task.table.target_name,
+        task.table.target_dataset_path,
         len(task.table.columns),
     )
     if task.table.columns:

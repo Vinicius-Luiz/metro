@@ -1,6 +1,8 @@
 table:
   schema_name: public
   name: actor
+  target_schema_name: raw
+  target_name: pagila_actor
 
 source:
   type: postgresql

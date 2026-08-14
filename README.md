@@ -101,6 +101,8 @@ Usa a query em `.metro/queries/film.sql`.
 table:
   schema_name: public
   name: film
+  target_schema_name: raw
+  target_name: pagila_film
 
 source:
   type: postgresql
@@ -125,6 +127,8 @@ O Source monta automaticamente:
 table:
   schema_name: public
   name: actor
+  target_schema_name: raw
+  target_name: pagila_actor
 
 source:
   type: postgresql
@@ -144,7 +148,7 @@ replication:
 
 | Destino | Conteúdo |
 |---|---|
-| `./local/` | Parquets gerados (ex.: `public.film.parquet`, `public.actor.parquet`) |
+| `./local/` | Parquets gerados (ex.: `raw/pagila_film/*.parquet`, `raw/pagila_actor/*.parquet`) |
 | `./logs/` | Logs da execução (console + arquivo) |
 | `.metro/queries/` | Arquivos de query referenciados por `query_path` |
 

@@ -1,6 +1,8 @@
 table:
   schema_name: public
   name: film
+  target_schema_name: raw
+  target_name: pagila_film
 
 source:
   type: postgresql

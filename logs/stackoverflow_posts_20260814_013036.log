@@ -1,0 +1,49 @@
+2026-08-14 01:30:36,115 INFO [metro.cli.main] Arquivo de log: C:\Users\Vinicius Luiz\Desktop\Scripts\metro\logs\stackoverflow_posts_20260814_013036.log
+2026-08-14 01:30:36,116 INFO [metro.cli.main] Carregando task: tasks\stackoverflow_posts.yaml
+2026-08-14 01:30:36,118 INFO [metro.cli.main] Iniciando replicação (table=public.posts, mode=full_load, source=postgresql, target=local)
+2026-08-14 01:30:36,118 INFO [metro.sources.sql.postgresql] Conectando ao PostgreSQL (runtime=stackoverflow_database)
+2026-08-14 01:30:36,205 INFO [metro.targets.local] LocalTarget pronto (runtime=development_storage, base_path=local)
+2026-08-14 01:30:36,205 INFO [metro.replication.full_load] Iniciando Full Load em batches (table=public.posts, path=raw/stackoverflow_posts, source.chunk_size=50000, target.chunk_size=200000)
+2026-08-14 01:30:36,209 INFO [metro.sources.sql.postgresql] Query padrão montada para public.posts (23 colunas)
+2026-08-14 01:30:36,209 INFO [metro.sources.sql.postgresql] Lendo PostgreSQL em batches (runtime=stackoverflow_database, chunk_size=50000)
+2026-08-14 01:30:38,763 INFO [metro.replication.full_load] Materializando parte 1 (path=raw/stackoverflow_posts/part_0001.parquet, rows=200000)
+2026-08-14 01:30:38,764 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0001.parquet
+2026-08-14 01:30:41,440 INFO [metro.replication.full_load] Materializando parte 2 (path=raw/stackoverflow_posts/part_0002.parquet, rows=200000)
+2026-08-14 01:30:41,441 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0002.parquet
+2026-08-14 01:30:44,008 INFO [metro.replication.full_load] Materializando parte 3 (path=raw/stackoverflow_posts/part_0003.parquet, rows=200000)
+2026-08-14 01:30:44,009 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0003.parquet
+2026-08-14 01:30:46,795 INFO [metro.replication.full_load] Materializando parte 4 (path=raw/stackoverflow_posts/part_0004.parquet, rows=200000)
+2026-08-14 01:30:46,796 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0004.parquet
+2026-08-14 01:30:49,196 INFO [metro.replication.full_load] Materializando parte 5 (path=raw/stackoverflow_posts/part_0005.parquet, rows=200000)
+2026-08-14 01:30:49,197 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0005.parquet
+2026-08-14 01:30:51,761 INFO [metro.replication.full_load] Materializando parte 6 (path=raw/stackoverflow_posts/part_0006.parquet, rows=200000)
+2026-08-14 01:30:51,762 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0006.parquet
+2026-08-14 01:30:54,693 INFO [metro.replication.full_load] Materializando parte 7 (path=raw/stackoverflow_posts/part_0007.parquet, rows=200000)
+2026-08-14 01:30:54,693 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0007.parquet
+2026-08-14 01:30:57,334 INFO [metro.replication.full_load] Materializando parte 8 (path=raw/stackoverflow_posts/part_0008.parquet, rows=200000)
+2026-08-14 01:30:57,335 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0008.parquet
+2026-08-14 01:31:00,314 INFO [metro.replication.full_load] Materializando parte 9 (path=raw/stackoverflow_posts/part_0009.parquet, rows=200000)
+2026-08-14 01:31:00,315 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0009.parquet
+2026-08-14 01:31:03,329 INFO [metro.replication.full_load] Materializando parte 10 (path=raw/stackoverflow_posts/part_0010.parquet, rows=200000)
+2026-08-14 01:31:03,330 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0010.parquet
+2026-08-14 01:31:06,329 INFO [metro.replication.full_load] Materializando parte 11 (path=raw/stackoverflow_posts/part_0011.parquet, rows=200000)
+2026-08-14 01:31:06,330 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0011.parquet
+2026-08-14 01:31:09,057 INFO [metro.replication.full_load] Materializando parte 12 (path=raw/stackoverflow_posts/part_0012.parquet, rows=200000)
+2026-08-14 01:31:09,057 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0012.parquet
+2026-08-14 01:31:12,137 INFO [metro.replication.full_load] Materializando parte 13 (path=raw/stackoverflow_posts/part_0013.parquet, rows=200000)
+2026-08-14 01:31:12,137 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0013.parquet
+2026-08-14 01:31:14,684 INFO [metro.replication.full_load] Materializando parte 14 (path=raw/stackoverflow_posts/part_0014.parquet, rows=200000)
+2026-08-14 01:31:14,685 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0014.parquet
+2026-08-14 01:31:17,791 INFO [metro.replication.full_load] Materializando parte 15 (path=raw/stackoverflow_posts/part_0015.parquet, rows=200000)
+2026-08-14 01:31:17,792 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0015.parquet
+2026-08-14 01:31:20,451 INFO [metro.replication.full_load] Materializando parte 16 (path=raw/stackoverflow_posts/part_0016.parquet, rows=200000)
+2026-08-14 01:31:20,452 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0016.parquet
+2026-08-14 01:31:23,575 INFO [metro.replication.full_load] Materializando parte 17 (path=raw/stackoverflow_posts/part_0017.parquet, rows=200000)
+2026-08-14 01:31:23,576 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0017.parquet
+2026-08-14 01:31:26,395 INFO [metro.replication.full_load] Materializando parte 18 (path=raw/stackoverflow_posts/part_0018.parquet, rows=200000)
+2026-08-14 01:31:26,396 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0018.parquet
+2026-08-14 01:31:27,767 INFO [metro.replication.full_load] Materializando parte 19 (path=raw/stackoverflow_posts/part_0019.parquet, rows=80688)
+2026-08-14 01:31:27,768 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_posts\part_0019.parquet
+2026-08-14 01:31:28,107 INFO [metro.replication.full_load] Full Load concluído (table=public.posts, rows=3680688, files=19, read_batches=74)
+2026-08-14 01:31:28,108 INFO [metro.sources.sql.postgresql] Conexão PostgreSQL encerrada (runtime=stackoverflow_database)
+2026-08-14 01:31:28,108 INFO [metro.cli.main] Replicação concluída (table=public.posts)

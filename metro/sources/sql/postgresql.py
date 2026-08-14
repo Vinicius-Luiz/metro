@@ -8,7 +8,6 @@ from typing import Any
 
 import polars as pl
 import psycopg
-from psycopg.rows import dict_row
 
 from metro.core.table import Table
 from metro.queries.base import QueryRepository
@@ -107,22 +106,18 @@ class PostgreSQLSource(SourceEndpoint):
         logger.debug("Query path: %s", self.query_path)
         logger.debug("SQL: %s", query)
 
-        with connection.cursor(row_factory=dict_row) as cursor:
+        with connection.cursor() as cursor:
             cursor.execute(query)
             rows = cursor.fetchall()
-            description = cursor.description
+            schema = _polars_schema_from_description(cursor.description)
 
-        dataframe = pl.DataFrame(rows) if rows else pl.DataFrame()
-        if description:
-            result_columns = [col.name for col in description]
-            logger.debug(
-                "Resultado da query | rows=%s | columns=%s | column_names=%s",
-                dataframe.height,
-                dataframe.width,
-                result_columns,
-            )
-        else:
-            logger.debug("Resultado da query | rows=%s | columns=%s", dataframe.height, dataframe.width)
+        dataframe = _dataframe_from_rows(rows, schema)
+        logger.debug(
+            "Resultado da query | rows=%s | columns=%s | column_names=%s",
+            dataframe.height,
+            dataframe.width,
+            list(dataframe.columns),
+        )
         return dataframe
 
     def read_batches(self) -> Iterator[pl.DataFrame]:
@@ -139,19 +134,19 @@ class PostgreSQLSource(SourceEndpoint):
         )
         logger.debug("SQL (batches): %s", query)
 
-        with connection.cursor(
-            name="metro_postgresql_cursor",
-            row_factory=dict_row,
-        ) as cursor:
+        with connection.cursor(name="metro_postgresql_cursor") as cursor:
             cursor.itersize = self.chunk_size
             cursor.execute(query)
 
             batch_index = 0
+            schema: dict[str, pl.DataType] | None = None
             while True:
                 rows = cursor.fetchmany(self.chunk_size)
+                if schema is None:
+                    schema = _polars_schema_from_description(cursor.description)
                 if not rows:
                     break
-                batch = pl.DataFrame(rows)
+                batch = _dataframe_from_rows(rows, schema)
                 batch_index += 1
                 logger.debug(
                     "Batch %s lido: rows=%s | columns=%s",
@@ -222,3 +217,50 @@ def _quote_ident(identifier: str) -> str:
     """Escapa identificador SQL com aspas duplas."""
     escaped = identifier.replace('"', '""')
     return f'"{escaped}"'
+
+
+def _dataframe_from_rows(
+    rows: list[tuple[Any, ...]],
+    schema: dict[str, pl.DataType],
+) -> pl.DataFrame:
+    if not rows:
+        return pl.DataFrame(schema=schema) if schema else pl.DataFrame()
+    if not schema:
+        return pl.DataFrame(rows, orient="row", infer_schema_length=None)
+    return pl.DataFrame(rows, schema=schema, orient="row")
+
+
+def _polars_schema_from_description(
+    description: Any,
+) -> dict[str, pl.DataType]:
+    if not description:
+        return {}
+    return {
+        column.name: _pg_type_to_polars(column.type_code)
+        for column in description
+    }
+
+
+# OIDs estáveis do PostgreSQL (pg_type). Tipos não mapeados viram String.
+_PG_OID_TO_POLARS: dict[int, pl.DataType] = {
+    16: pl.Boolean,
+    20: pl.Int64,
+    21: pl.Int16,
+    23: pl.Int32,
+    25: pl.String,
+    700: pl.Float32,
+    701: pl.Float64,
+    1042: pl.String,
+    1043: pl.String,
+    1082: pl.Date,
+    1083: pl.Time,
+    1114: pl.Datetime("us"),
+    1184: pl.Datetime("us", time_zone="UTC"),
+    1700: pl.Float64,
+    2950: pl.String,
+    3802: pl.String,
+}
+
+
+def _pg_type_to_polars(type_code: int) -> pl.DataType:
+    return _PG_OID_TO_POLARS.get(int(type_code), pl.String)

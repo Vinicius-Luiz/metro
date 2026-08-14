@@ -24,6 +24,14 @@ class TargetEndpoint(Endpoint):
         """Tamanho de chunk/escrita, quando parametrizado."""
         return self._chunk_size
 
+    def supports_batch_write(self) -> bool:
+        """Indica se o Target materializa batches em múltiplos arquivos.
+
+        A implementação padrão retorna False. Targets que escrevem um
+        arquivo Parquet por path (ex.: filesystem) devem sobrescrever.
+        """
+        return False
+
     @abstractmethod
     def write(self, dataframe: pl.DataFrame, path: str) -> None:
         """Materializa o DataFrame no destino informado."""

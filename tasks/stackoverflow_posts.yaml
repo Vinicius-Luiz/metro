@@ -1,14 +1,18 @@
 table:
   schema_name: public
   name: posts
+  target_schema_name: raw
+  target_name: stackoverflow_posts
 
 source:
   type: postgresql
   runtime: stackoverflow_database
+  chunk_size: 50000
 
 target:
   type: local
   runtime: development_storage
+  chunk_size: 200000
 
 replication:
   mode: full_load

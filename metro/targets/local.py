@@ -60,6 +60,9 @@ class LocalTarget(TargetEndpoint):
         self._base_path = None
         logger.debug("LocalTarget desconectado (runtime=%s)", self.runtime)
 
+    def supports_batch_write(self) -> bool:
+        return True
+
     def write(self, dataframe: pl.DataFrame, path: str) -> None:
         destination = self.base_path / path
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -90,17 +93,11 @@ class LocalTarget(TargetEndpoint):
             shutil.rmtree(target)
             logger.info("Diretório removido: %s", target)
             return
-        logger.warning("Partição inexistente para remoção: %s", target)
+        logger.debug("Partição inexistente para remoção: %s", target)
 
     def _resolve_base_path(self, secret: str | dict[str, Any]) -> Path:
         if isinstance(secret, str):
             return Path(secret)
 
-        if isinstance(secret, dict):
-            base_path = secret.get("base_path", DEFAULT_BASE_PATH)
-            return Path(str(base_path))
-
-        raise TypeError(
-            f"LocalTarget espera str ou dict para runtime '{self.runtime}', "
-            f"obtido: {type(secret).__name__}"
-        )
+        base_path = secret.get("base_path", DEFAULT_BASE_PATH)
+        return Path(str(base_path))
