@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import gc
 import logging
 
 import polars as pl
+import psutil
 
 from metro.core.table import Table
 from metro.replication.base import ReplicationStrategy
@@ -12,6 +14,8 @@ from metro.sources.base import SourceEndpoint
 from metro.targets.base import TargetEndpoint
 
 logger = logging.getLogger(__name__)
+
+_BYTES_PER_MIB = 1024 * 1024
 
 
 class FullLoadStrategy(ReplicationStrategy):
@@ -77,6 +81,8 @@ class FullLoadStrategy(ReplicationStrategy):
 
         dataset_path = table.target_dataset_path
         write_size = target.chunk_size
+        enable_gc = write_size is not None
+        process = psutil.Process() if enable_gc else None
         logger.info(
             "Iniciando Full Load em batches (table=%s, path=%s, "
             "source.chunk_size=%s, target.chunk_size=%s)",
@@ -119,6 +125,8 @@ class FullLoadStrategy(ReplicationStrategy):
                 file_index += 1
                 _write_part(target, dataset_path, file_index, chunk)
                 total_rows += chunk.height
+                del chunk
+                _collect_garbage(process)
 
             if dataframe.height == 0:
                 return
@@ -126,6 +134,8 @@ class FullLoadStrategy(ReplicationStrategy):
                 file_index += 1
                 _write_part(target, dataset_path, file_index, dataframe)
                 total_rows += dataframe.height
+                del dataframe
+                _collect_garbage(process)
                 return
 
             accumulated = [dataframe]
@@ -171,3 +181,37 @@ def _write_part(
         dataframe.height,
     )
     target.write(dataframe, part_path)
+
+
+def _rss_mib(process: psutil.Process) -> float:
+    return process.memory_info().rss / _BYTES_PER_MIB
+
+
+def _collect_garbage(process: psutil.Process | None) -> None:
+    """Coleta lixo após a parte já estar persistida no Target."""
+    if process is None:
+        return
+
+    memory_before_mb = _rss_mib(process)
+    counts_before = gc.get_count()
+    collected = gc.collect()
+    memory_after_mb = _rss_mib(process)
+    freed_mb = memory_before_mb - memory_after_mb
+    freed_percent = (
+        (freed_mb / memory_before_mb) * 100 if memory_before_mb > 0 else 0.0
+    )
+    logger.info(
+        "Garbage collection executado | memory_before_mb=%.1f | "
+        "memory_after_mb=%.1f | freed_mb=%.1f | freed_percent=%.1f | collected=%s",
+        memory_before_mb,
+        memory_after_mb,
+        freed_mb,
+        freed_percent,
+        collected,
+    )
+    logger.debug(
+        "GC detalhes | counts_before=%s | counts_after=%s | stats=%s",
+        counts_before,
+        gc.get_count(),
+        gc.get_stats(),
+    )
