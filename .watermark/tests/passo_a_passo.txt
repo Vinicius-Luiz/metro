@@ -1,0 +1,157 @@
+================================================================================
+TESTE MANUAL — Incremental Append / MaxValue (Watermark)
+================================================================================
+
+Objetivo
+--------
+Validar que o Append:
+  1) na 1ª execução processa o dataset completo e cria o watermark;
+  2) nas execuções seguintes processa apenas registros com
+     last_update > watermark e acrescenta Parquets;
+  3) UPDATE com last_update maior entra no append;
+  4) DELETE na origem NÃO remove dados já materializados no Target
+     (comportamento esperado do Append — não é CDC).
+
+
+Pré-requisitos
+--------------
+1. Database do watermark criado:
+     psql -U postgres -h localhost -p 5432 -f .watermark/setup_watermark.sql
+
+2. Variável no .env (raiz do METRO):
+     METRO_WATERMARK_POSTGRES_DATABASE="postgresql://postgres:SENHA@localhost:5432/metro_watermark"
+
+3. API no ar:
+     cd .watermark
+     ..\venv\Scripts\uvicorn.exe app:app --reload --port 8000
+
+4. Tasks:
+     tasks/incremental_append/test_watermark_append.yaml
+     tasks/incremental_append/test_watermark_append_partitioned.yaml
+
+
+Comando base do METRO
+---------------------
+metro run tasks/incremental_append/test_watermark_append.yaml ^
+  --secret-provider local ^
+  --watermark-api-url http://localhost:8000
+
+(Para particionado, use test_watermark_append_partitioned.yaml)
+
+
+================================================================================
+PASSO 0 — Criar tabela de teste
+================================================================================
+SQL: 00_create_table.sql
+
+  psql -U postgres -h localhost -p 5432 -d stackoverflow -f .watermark/tests/00_create_table.sql
+
+Esperado: tabela public.test_watermark vazia.
+
+
+================================================================================
+PASSO 1 — Inserir 10 registros iniciais + 1ª execução METRO
+================================================================================
+SQL: 01_insert_10.sql
+
+  psql -U postgres -h localhost -p 5432 -d stackoverflow -f .watermark/tests/01_insert_10.sql
+
+Esperado no banco:
+  - 10 registros (id 1..10)
+  - MAX(last_update) = 2026-01-10 19:00:00
+
+Rodar METRO (1ª execução — sem watermark):
+
+  metro run tasks/incremental_append/test_watermark_append.yaml --secret-provider local --watermark-api-url http://localhost:8000
+
+Esperado no METRO:
+  - processa 10 registros
+  - cria Parquet(s) em local/raw/test_watermark_append/
+  - cria watermark para raw.test_watermark_append / last_update
+    com valor 2026-01-10 19:00:00
+
+Conferir watermark:
+  GET http://localhost:8000/watermarks/raw.test_watermark_append/last_update
+
+
+================================================================================
+PASSO 2 — Inserir 5 registros novos + 2ª execução METRO
+================================================================================
+SQL: 02_insert_5.sql
+
+  psql -U postgres -h localhost -p 5432 -d stackoverflow -f .watermark/tests/02_insert_5.sql
+
+Esperado no banco:
+  - 15 registros no total
+  - 5 novos com last_update > 2026-01-10 19:00:00
+
+Rodar METRO novamente (mesmo comando do Passo 1).
+
+Esperado no METRO:
+  - processa APENAS 5 registros (filtro last_update > watermark)
+  - acrescenta novos part_*.parquet (não apaga os anteriores)
+  - atualiza watermark para MAX dos novos (2026-01-15 12:00:00)
+
+
+================================================================================
+PASSO 3 — Atualizar 4 registros + 3ª execução METRO
+================================================================================
+SQL: 03_update_4.sql
+
+  psql -U postgres -h localhost -p 5432 -d stackoverflow -f .watermark/tests/03_update_4.sql
+
+Esperado no banco:
+  - ids 1, 2, 3 e 4 com value alterado e last_update = 2026-01-16 18:00:00
+  - last_update desses 4 > watermark atual
+
+Rodar METRO novamente.
+
+Esperado no METRO:
+  - processa 4 registros (as linhas atualizadas “voltam” como novas,
+    porque Append não faz upsert — materializa de novo)
+  - watermark sobe para 2026-01-16 18:00:00
+  - no Target haverá duplicidade lógica dos ids 1..4 (esperado no Append)
+
+
+================================================================================
+PASSO 4 — Remover 1 registro + 4ª execução METRO
+================================================================================
+SQL: 04_delete_1.sql
+
+  psql -U postgres -h localhost -p 5432 -d stackoverflow -f .watermark/tests/04_delete_1.sql
+
+Esperado no banco:
+  - id 10 removido
+  - 14 registros restantes
+  - MAX(last_update) não muda por causa do DELETE
+
+Rodar METRO novamente.
+
+Esperado no METRO:
+  - processa 0 registros novos (nada com last_update > watermark)
+  - Parquets no Target continuam com o id 10 (Append NÃO remove)
+  - watermark permanece o mesmo
+
+
+================================================================================
+PASSO 5 (opcional) — Append particionado
+================================================================================
+Repita os passos 0–4 usando:
+
+  metro run tasks/incremental_append/test_watermark_append_partitioned.yaml --secret-provider local --watermark-api-url http://localhost:8000
+
+Esperado adicional:
+  - layout Hive em local/raw/test_watermark_append_partitioned/year=YYYY/
+  - watermark continua funcionando igual
+
+
+================================================================================
+Limpeza
+================================================================================
+SQL: 99_cleanup.sql
+
+  - apaga a tabela de teste no PostgreSQL
+  - (opcional) remover watermark via API DELETE
+  - (opcional) apagar pastas em ./local/raw/test_watermark_append*
+
+================================================================================

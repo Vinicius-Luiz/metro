@@ -84,6 +84,8 @@ class StrategyConfig(BaseModel):
     """Configuração da estratégia incremental.
 
     O método é implícito pelo type: replace → partition; append → max_value.
+    
+    Append pode ter particionamento opcional (Hive-style), mas não usa lookback.
     """
 
     type: Literal["append", "replace"]
@@ -102,6 +104,10 @@ class StrategyConfig(BaseModel):
         if self.type == "replace" and self.lookback_periods is None:
             raise TaskValidationError(
                 "strategy.lookback_periods é obrigatório quando type='replace'"
+            )
+        if self.type == "append" and self.lookback_periods is not None:
+            raise TaskValidationError(
+                "strategy.lookback_periods não deve ser informado para append"
             )
         return self
 

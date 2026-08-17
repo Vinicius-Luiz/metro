@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gc
 import logging
+from typing import Any
 
 import polars as pl
 import psutil
@@ -34,6 +35,118 @@ def write_part(
     target.write(dataframe, part_path)
 
 
+def write_batched(
+    source: SourceEndpoint,
+    target: TargetEndpoint,
+    staging_path: str,
+    track_max: str | None = None,
+) -> tuple[int, Any]:
+    """Materializa batches em arquivos Parquet planos sob staging_path.
+
+    Processa batches do Source, acumula DataFrames até atingir write_size,
+    executa GC automático e opcionalmente rastreia valor máximo de coluna.
+
+    Args:
+        source: Source Endpoint para leitura de batches.
+        target: Target Endpoint para escrita.
+        staging_path: Path base de staging (_tmp).
+        track_max: Coluna para rastrear valor máximo (usado por Append watermark).
+
+    Returns:
+        (total_rows, max_value) onde max_value é None se track_max não informado.
+    """
+    write_size = target.chunk_size
+    process = psutil.Process() if write_size is not None else None
+
+    accumulated: list[pl.DataFrame] = []
+    accumulated_rows = 0
+    file_index = 0
+    total_rows = 0
+    read_batches = 0
+    tracked_max: Any = None
+
+    def flush(force: bool = False) -> None:
+        nonlocal accumulated, accumulated_rows, file_index, total_rows
+        if not accumulated:
+            return
+
+        dataframe = (
+            accumulated[0]
+            if len(accumulated) == 1
+            else pl.concat(accumulated, how="vertical")
+        )
+        accumulated = []
+        accumulated_rows = 0
+
+        if write_size is None:
+            file_index += 1
+            write_part(target, staging_path, file_index, dataframe)
+            total_rows += dataframe.height
+            return
+
+        while dataframe.height >= write_size:
+            chunk = dataframe.slice(0, write_size)
+            dataframe = dataframe.slice(write_size)
+            file_index += 1
+            write_part(target, staging_path, file_index, chunk)
+            total_rows += chunk.height
+            del chunk
+            collect_garbage(process)
+
+        if dataframe.height == 0:
+            return
+        if force:
+            file_index += 1
+            write_part(target, staging_path, file_index, dataframe)
+            total_rows += dataframe.height
+            del dataframe
+            collect_garbage(process)
+            return
+
+        accumulated = [dataframe]
+        accumulated_rows = dataframe.height
+
+    for batch in source.read_batches():
+        read_batches += 1
+        if batch.height == 0:
+            continue
+
+        if track_max is not None:
+            if track_max not in batch.columns:
+                raise ValueError(
+                    f"Coluna de watermark '{track_max}' não encontrada "
+                    f"no DataFrame. Colunas: {list(batch.columns)}"
+                )
+            batch_max = batch[track_max].max()
+            if batch_max is not None and (
+                tracked_max is None or batch_max > tracked_max
+            ):
+                tracked_max = batch_max
+
+        logger.debug(
+            "Batch de leitura %s: rows=%s, columns=%s",
+            read_batches,
+            batch.height,
+            list(batch.columns),
+        )
+        accumulated.append(batch)
+        accumulated_rows += batch.height
+        if write_size is None or accumulated_rows >= write_size:
+            flush()
+
+    flush(force=True)
+
+    logger.info(
+        "Materialização em batches concluída (rows=%s, files=%s, "
+        "read_batches=%s, tracked_max=%s)",
+        total_rows,
+        file_index,
+        read_batches,
+        tracked_max if track_max else "N/A",
+    )
+    return total_rows, tracked_max
+
+
 def write_partitioned(
     source: SourceEndpoint,
     target: TargetEndpoint,
@@ -41,11 +154,19 @@ def write_partitioned(
     reference_column: str,
     granularity: str,
     allowed_partitions: frozenset[str] | None = None,
-) -> None:
+    track_max: str | None = None,
+) -> tuple[int, Any]:
     """Materializa batches particionados em Hive sob staging_path.
 
     Quando `allowed_partitions` é None, grava todas as partições encontradas.
     Quando informado, grava apenas as partições da janela (Replace).
+    
+    Args:
+        track_max: Se informado, rastreia o valor máximo desta coluna durante
+                   a escrita (usado por Append para atualizar watermark).
+    
+    Returns:
+        (total_rows, max_value) onde max_value é None se track_max não informado.
     """
     write_size = target.chunk_size
     process = psutil.Process() if write_size is not None else None
@@ -55,6 +176,7 @@ def write_partitioned(
     file_index: dict[str, int] = {}
     total_rows = 0
     read_batches = 0
+    tracked_max: Any = None
 
     def flush_partition(partition_path: str, force: bool = False) -> None:
         nonlocal total_rows
@@ -123,6 +245,18 @@ def write_partitioned(
                 f"no DataFrame. Colunas: {list(batch.columns)}"
             )
 
+        if track_max is not None:
+            if track_max not in batch.columns:
+                raise ValueError(
+                    f"Coluna de watermark '{track_max}' não encontrada "
+                    f"no DataFrame. Colunas: {list(batch.columns)}"
+                )
+            batch_max = batch[track_max].max()
+            if batch_max is not None and (
+                tracked_max is None or batch_max > tracked_max
+            ):
+                tracked_max = batch_max
+
         for partition_path, partition_df in split_by_partition(
             batch,
             reference_column,
@@ -151,12 +285,14 @@ def write_partitioned(
 
     logger.info(
         "Materialização particionada concluída (rows=%s, files=%s, "
-        "read_batches=%s, partitions_written=%s)",
+        "read_batches=%s, partitions_written=%s, tracked_max=%s)",
         total_rows,
         sum(file_index.values()),
         read_batches,
         len(file_index),
+        tracked_max if track_max else "N/A",
     )
+    return total_rows, tracked_max
 
 
 def rss_mib(process: psutil.Process) -> float:

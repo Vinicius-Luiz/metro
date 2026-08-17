@@ -10,7 +10,8 @@ from pathlib import Path
 
 from metro.core.task import Task
 from metro.queries.local import LocalQueryRepository
-from metro.replication.full_load import FullLoadStrategy
+from metro.replication.full_load.strategy import FullLoadStrategy
+from metro.replication.incremental.append.max_value import AppendMaxValueStrategy
 from metro.replication.incremental.replace.partition import ReplacePartitionStrategy
 from metro.secrets.base import SecretProvider
 from metro.secrets.local import LocalSecretProvider
@@ -18,6 +19,7 @@ from metro.sources.base import SourceEndpoint
 from metro.sources.sql.postgresql import PostgreSQLSource
 from metro.targets.base import TargetEndpoint
 from metro.targets.local import LocalTarget
+from metro.watermark.client import WatermarkClient
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
         run_task(
             task_path=task_path,
             secret_provider_name=args.secret_provider,
+            watermark_api_url=args.watermark_api_url,
         )
     except Exception:
         logger.exception("Falha ao executar a task")
@@ -53,7 +56,11 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def run_task(task_path: Path, secret_provider_name: str) -> None:
+def run_task(
+    task_path: Path,
+    secret_provider_name: str,
+    watermark_api_url: str | None = None,
+) -> None:
     """Executa exatamente uma task (uma tabela) por invocação."""
     logger.info("Carregando task: %s", task_path)
     task = Task.from_yaml(task_path)
@@ -63,9 +70,20 @@ def run_task(task_path: Path, secret_provider_name: str) -> None:
     query_repository = LocalQueryRepository()
     logger.debug("QueryRepository base_dir=%s", query_repository.base_dir)
 
+    watermark_client = None
+    needs_watermark = (
+        task.replication.mode == "incremental"
+        and task.replication.strategy is not None
+        and task.replication.strategy.type == "append"
+    )
+    if needs_watermark:
+        api_url = watermark_api_url or "http://localhost:8000"
+        watermark_client = WatermarkClient(api_base_url=api_url)
+        logger.debug("WatermarkClient configurado com api_base_url=%s", api_url)
+
     source = _build_source(task, secret_provider, query_repository)
     target = _build_target(task, secret_provider)
-    strategy = _build_strategy(task)
+    strategy = _build_strategy(task, watermark_client)
 
     logger.info(
         "Iniciando replicação (table=%s, mode=%s, source=%s, target=%s)",
@@ -161,6 +179,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Provider de secrets (padrão: local)",
     )
     run_parser.add_argument(
+        "--watermark-api-url",
+        default="http://localhost:8000",
+        help="URL base da API de watermark (padrão: http://localhost:8000)",
+    )
+    run_parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
@@ -250,7 +273,10 @@ def _build_target(task: Task, secret_provider: SecretProvider) -> TargetEndpoint
     raise ValueError(f"Target type não suportado: {target_type}")
 
 
-def _build_strategy(task: Task):
+def _build_strategy(
+    task: Task,
+    watermark_client: WatermarkClient | None = None,
+):
     """Instancia a Replication Strategy conforme `replication` da task."""
     if task.replication.mode == "full_load":
         partition = task.replication.partition
@@ -269,6 +295,23 @@ def _build_strategy(task: Task):
         strategy = task.replication.strategy
         if strategy is None:
             raise ValueError("replication.strategy é obrigatório para mode=incremental")
+        if strategy.type == "append":
+            if watermark_client is None:
+                raise ValueError(
+                    "watermark_client é obrigatório para Append/MaxValue"
+                )
+            partition_type = None
+            partition_column = None
+            if strategy.partition is not None:
+                partition_type = strategy.partition.type
+                partition_column = strategy.partition.reference_column
+            return AppendMaxValueStrategy(
+                reference_column=strategy.reference_column,
+                watermark_client=watermark_client,
+                aggregation=strategy.aggregation or "MAX",
+                partition_type=partition_type,
+                partition_column=partition_column,
+            )
         if strategy.type == "replace":
             if strategy.partition is None or strategy.lookback_periods is None:
                 raise ValueError(

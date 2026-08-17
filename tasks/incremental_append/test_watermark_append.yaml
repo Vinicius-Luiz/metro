@@ -1,0 +1,19 @@
+table:
+  schema_name: public
+  name: test_watermark
+  target_schema_name: raw
+  target_name: test_watermark_append
+
+source:
+  type: postgresql
+  runtime: stackoverflow_postgres_database
+
+target:
+  type: local
+  runtime: development_storage
+
+replication:
+  mode: incremental
+  strategy:
+    type: append
+    reference_column: last_update

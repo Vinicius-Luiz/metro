@@ -57,11 +57,22 @@ class SourceEndpoint(Endpoint):
         """Repositório usado para resolver `query_path`, quando informado."""
         return self._query_repository
 
-    def apply_lower_bound(self, reference_column: str, min_value: object) -> None:
-        """Restringe a extração a `reference_column >= min_value`.
+    def apply_lower_bound(
+        self,
+        reference_column: str,
+        min_value: object,
+        *,
+        inclusive: bool = True,
+    ) -> None:
+        """Restringe a extração a `reference_column >= min_value` (ou `>`).
 
         A implementação padrão indica que a operação não é suportada.
         Sources que suportam filtro incremental devem sobrescrever.
+
+        Args:
+            reference_column: Coluna de referência do filtro.
+            min_value: Valor mínimo do bound.
+            inclusive: Se True usa `>=`; se False usa `>` (Append/MaxValue).
         """
         raise NotImplementedError(
             f"{type(self).__name__} não implementa apply_lower_bound"

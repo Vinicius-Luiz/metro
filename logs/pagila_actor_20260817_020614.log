@@ -1,0 +1,15 @@
+2026-08-17 02:06:14,978 INFO [metro.cli.main] Arquivo de log: C:\Users\Vinicius Luiz\Desktop\Scripts\metro\logs\pagila_actor_20260817_020614.log
+2026-08-17 02:06:14,978 INFO [metro.cli.main] Carregando task: tasks\full_load\pagila_actor.yaml
+2026-08-17 02:06:14,981 INFO [metro.cli.main] Iniciando replicação (table=public.actor, mode=full_load, source=postgresql, target=local)
+2026-08-17 02:06:14,981 INFO [metro.sources.sql.postgresql] Conectando ao PostgreSQL (runtime=pagila_postgres_database)
+2026-08-17 02:06:15,069 INFO [metro.targets.local] LocalTarget pronto (runtime=development_storage, base_path=local)
+2026-08-17 02:06:15,070 INFO [metro.targets.local] Staging iniciado: local\raw\pagila_actor\_tmp
+2026-08-17 02:06:15,071 INFO [metro.replication.full_load.strategy] Iniciando Full Load (table=public.actor, path=raw/pagila_actor)
+2026-08-17 02:06:15,073 INFO [metro.sources.sql.postgresql] Query padrão montada para public.actor (4 colunas)
+2026-08-17 02:06:15,073 INFO [metro.sources.sql.postgresql] Executando query no PostgreSQL (runtime=pagila_postgres_database)
+2026-08-17 02:06:15,093 INFO [metro.replication.writer] Materializando parte 1 (path=raw/pagila_actor/_tmp/part_0001.parquet, rows=200)
+2026-08-17 02:06:15,094 INFO [metro.targets.local] Gravando Parquet em local\raw\pagila_actor\_tmp\part_0001.parquet
+2026-08-17 02:06:15,098 INFO [metro.replication.full_load.strategy] Full Load concluído (table=public.actor, rows=200)
+2026-08-17 02:06:15,101 INFO [metro.targets.local] Staging commitado (dataset=raw/pagila_actor)
+2026-08-17 02:06:15,101 INFO [metro.sources.sql.postgresql] Conexão PostgreSQL encerrada (runtime=pagila_postgres_database)
+2026-08-17 02:06:15,101 INFO [metro.cli.main] Replicação concluída (table=public.actor)

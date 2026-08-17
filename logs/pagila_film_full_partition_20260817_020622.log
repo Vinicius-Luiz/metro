@@ -1,0 +1,15 @@
+2026-08-17 02:06:22,051 INFO [metro.cli.main] Arquivo de log: C:\Users\Vinicius Luiz\Desktop\Scripts\metro\logs\pagila_film_full_partition_20260817_020622.log
+2026-08-17 02:06:22,052 INFO [metro.cli.main] Carregando task: tasks\full_load\pagila_film_full_partition.yaml
+2026-08-17 02:06:22,055 INFO [metro.cli.main] Iniciando replicação (table=public.film, mode=full_load, source=postgresql, target=local)
+2026-08-17 02:06:22,055 INFO [metro.sources.sql.postgresql] Conectando ao PostgreSQL (runtime=pagila_postgres_database)
+2026-08-17 02:06:22,136 INFO [metro.targets.local] LocalTarget pronto (runtime=development_storage, base_path=local)
+2026-08-17 02:06:22,137 INFO [metro.targets.local] Staging iniciado: local\raw\pagila_film\_tmp
+2026-08-17 02:06:22,137 INFO [metro.replication.full_load.strategy] Iniciando Full Load particionado (table=public.film, path=raw/pagila_film, column=last_update, granularity=year)
+2026-08-17 02:06:22,138 INFO [metro.sources.sql.postgresql] Executando query no PostgreSQL (runtime=pagila_postgres_database)
+2026-08-17 02:06:22,167 INFO [metro.replication.writer] Materializando parte 1 (path=raw/pagila_film/_tmp/year=2022/part_0001.parquet, rows=1000)
+2026-08-17 02:06:22,168 INFO [metro.targets.local] Gravando Parquet em local\raw\pagila_film\_tmp\year=2022\part_0001.parquet
+2026-08-17 02:06:22,172 INFO [metro.replication.writer] Materialização particionada concluída (rows=1000, files=1, read_batches=1, partitions_written=1, tracked_max=N/A)
+2026-08-17 02:06:22,172 INFO [metro.replication.full_load.strategy] Full Load particionado concluído (table=public.film)
+2026-08-17 02:06:22,177 INFO [metro.targets.local] Staging commitado (dataset=raw/pagila_film)
+2026-08-17 02:06:22,177 INFO [metro.sources.sql.postgresql] Conexão PostgreSQL encerrada (runtime=pagila_postgres_database)
+2026-08-17 02:06:22,177 INFO [metro.cli.main] Replicação concluída (table=public.film)

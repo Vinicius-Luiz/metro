@@ -137,6 +137,48 @@ class LocalTarget(TargetEndpoint):
             return
         logger.debug("Staging inexistente para descarte: %s", staging_abs)
 
+    def commit_append_staging(self, dataset_path: str) -> None:
+        dataset_abs = self.base_path / dataset_path
+        staging_abs = dataset_abs / TEMP_DIRNAME
+        if not staging_abs.exists():
+            raise RuntimeError(
+                f"Staging inexistente para append commit: {staging_abs}"
+            )
+
+        dataset_abs.mkdir(parents=True, exist_ok=True)
+        promoted = 0
+
+        for child in sorted(staging_abs.iterdir()):
+            if child.is_file():
+                next_index = _next_part_index(dataset_abs)
+                destination = dataset_abs / f"part_{next_index:04d}.parquet"
+                shutil.move(str(child), str(destination))
+                logger.info("Arquivo append promovido: %s", destination)
+                promoted += 1
+                continue
+
+            if not child.is_dir():
+                continue
+
+            # Partição Hive (ex.: year=2026/)
+            partition_dest = dataset_abs / child.name
+            partition_dest.mkdir(parents=True, exist_ok=True)
+            next_index = _next_part_index(partition_dest)
+            for part_file in sorted(child.glob("part_*.parquet")):
+                destination = partition_dest / f"part_{next_index:04d}.parquet"
+                shutil.move(str(part_file), str(destination))
+                logger.info("Arquivo append promovido: %s", destination)
+                next_index += 1
+                promoted += 1
+
+        if staging_abs.exists():
+            shutil.rmtree(staging_abs)
+        logger.info(
+            "Staging append commitado (dataset=%s, files=%s)",
+            dataset_path,
+            promoted,
+        )
+
     def _commit_full_dataset(self, dataset_abs: Path, staging_abs: Path) -> None:
         """Substitui o dataset inteiro pelo conteúdo do staging."""
         for child in list(dataset_abs.iterdir()):
@@ -185,3 +227,16 @@ class LocalTarget(TargetEndpoint):
 
         base_path = secret.get("base_path", DEFAULT_BASE_PATH)
         return Path(str(base_path))
+
+
+def _next_part_index(dataset_abs: Path) -> int:
+    """Retorna o próximo índice `part_NNNN` disponível no dataset."""
+    max_index = 0
+    for child in dataset_abs.glob("part_*.parquet"):
+        stem = child.stem  # part_0001
+        if not stem.startswith("part_"):
+            continue
+        suffix = stem[5:]
+        if suffix.isdigit():
+            max_index = max(max_index, int(suffix))
+    return max_index + 1

@@ -4,12 +4,9 @@ from __future__ import annotations
 
 import logging
 
-import polars as pl
-import psutil
-
 from metro.core.table import Table
 from metro.replication.base import ReplicationStrategy
-from metro.replication.writer import collect_garbage, write_part, write_partitioned
+from metro.replication.writer import write_batched, write_part, write_partitioned
 from metro.sources.base import SourceEndpoint
 from metro.targets.base import TargetEndpoint
 
@@ -133,86 +130,24 @@ class FullLoadStrategy(ReplicationStrategy):
                 "que implemente supports_batch_write()."
             )
 
-        write_size = target.chunk_size
-        enable_gc = write_size is not None
-        process = psutil.Process() if enable_gc else None
         logger.info(
             "Iniciando Full Load em batches (table=%s, path=%s, "
             "source.chunk_size=%s, target.chunk_size=%s)",
             table.qualified_name,
             table.target_dataset_path,
             source.chunk_size,
-            write_size,
+            target.chunk_size,
         )
 
-        accumulated: list[pl.DataFrame] = []
-        accumulated_rows = 0
-        file_index = 0
-        total_rows = 0
-        read_batches = 0
-
-        def flush(force: bool = False) -> None:
-            nonlocal accumulated, accumulated_rows, file_index, total_rows
-            if not accumulated:
-                return
-
-            dataframe = (
-                accumulated[0]
-                if len(accumulated) == 1
-                else pl.concat(accumulated, how="vertical")
-            )
-            accumulated = []
-            accumulated_rows = 0
-
-            if write_size is None:
-                file_index += 1
-                write_part(target, staging_path, file_index, dataframe)
-                total_rows += dataframe.height
-                return
-
-            while dataframe.height >= write_size:
-                chunk = dataframe.slice(0, write_size)
-                dataframe = dataframe.slice(write_size)
-                file_index += 1
-                write_part(target, staging_path, file_index, chunk)
-                total_rows += chunk.height
-                del chunk
-                collect_garbage(process)
-
-            if dataframe.height == 0:
-                return
-            if force:
-                file_index += 1
-                write_part(target, staging_path, file_index, dataframe)
-                total_rows += dataframe.height
-                del dataframe
-                collect_garbage(process)
-                return
-
-            accumulated = [dataframe]
-            accumulated_rows = dataframe.height
-
-        for batch in source.read_batches():
-            read_batches += 1
-            if batch.height == 0:
-                continue
-            logger.debug(
-                "Batch de leitura %s: rows=%s, columns=%s",
-                read_batches,
-                batch.height,
-                list(batch.columns),
-            )
-            accumulated.append(batch)
-            accumulated_rows += batch.height
-            if write_size is None or accumulated_rows >= write_size:
-                flush()
-
-        flush(force=True)
+        total_rows, _ = write_batched(
+            source=source,
+            target=target,
+            staging_path=staging_path,
+            track_max=None,
+        )
 
         logger.info(
-            "Full Load concluído (table=%s, rows=%s, files=%s, read_batches=%s)",
+            "Full Load concluído (table=%s, rows=%s)",
             table.qualified_name,
             total_rows,
-            file_index,
-            read_batches,
         )

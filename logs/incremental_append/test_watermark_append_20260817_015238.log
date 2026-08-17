@@ -1,0 +1,21 @@
+2026-08-17 01:52:38,920 INFO [metro.cli.main] Arquivo de log: C:\Users\Vinicius Luiz\Desktop\Scripts\metro\logs\test_watermark_append_20260817_015238.log
+2026-08-17 01:52:38,920 INFO [metro.cli.main] Carregando task: tasks\incremental_append\test_watermark_append.yaml
+2026-08-17 01:52:38,923 INFO [metro.cli.main] Iniciando replicação (table=public.test_watermark, mode=incremental, source=postgresql, target=local)
+2026-08-17 01:52:38,923 INFO [metro.sources.sql.postgresql] Conectando ao PostgreSQL (runtime=stackoverflow_postgres_database)
+2026-08-17 01:52:39,013 INFO [metro.targets.local] LocalTarget pronto (runtime=development_storage, base_path=local)
+2026-08-17 01:52:41,106 INFO [metro.watermark.client] Watermark obtido (task_identifier=raw.test_watermark_append, reference_column=last_update, watermark_value=2026-01-10 19:00:00)
+2026-08-17 01:52:41,106 INFO [metro.replication.incremental.append.max_value] Executando Append/MaxValue (task_identifier=raw.test_watermark_append, reference_column=last_update, watermark_anterior=2026-01-10 19:00:00)
+2026-08-17 01:52:41,106 INFO [metro.sources.sql.postgresql] Lower bound aplicado (runtime=stackoverflow_postgres_database, column=last_update, min_value=2026-01-10 19:00:00, inclusive=False)
+2026-08-17 01:52:41,107 INFO [metro.targets.local] Staging iniciado: local\raw\test_watermark_append\_tmp
+2026-08-17 01:52:41,111 INFO [metro.sources.sql.postgresql] Query padrão montada para public.test_watermark (4 colunas)
+2026-08-17 01:52:41,111 INFO [metro.sources.sql.postgresql] Executando query no PostgreSQL (runtime=stackoverflow_postgres_database)
+2026-08-17 01:52:41,114 INFO [metro.replication.writer] Materializando parte 1 (path=raw/test_watermark_append/_tmp/part_0001.parquet, rows=5)
+2026-08-17 01:52:41,114 INFO [metro.targets.local] Gravando Parquet em local\raw\test_watermark_append\_tmp\part_0001.parquet
+2026-08-17 01:52:41,117 INFO [metro.replication.incremental.append.max_value] Extração Append concluída (rows=5, files=1, read_batches=1)
+2026-08-17 01:52:41,117 INFO [metro.replication.incremental.append.max_value] Novo watermark calculado (reference_column=last_update, watermark=2026-01-15 12:00:00, tipo=timestamp, rows=5, partitioned=False)
+2026-08-17 01:52:41,119 INFO [metro.targets.local] Arquivo append promovido: local\raw\test_watermark_append\part_0002.parquet
+2026-08-17 01:52:41,120 INFO [metro.targets.local] Staging append commitado (dataset=raw/test_watermark_append, files=1)
+2026-08-17 01:52:43,219 INFO [metro.watermark.client] Watermark atualizado (task_identifier=raw.test_watermark_append, reference_column=last_update, watermark_value=2026-01-15 12:00:00, record_count=5)
+2026-08-17 01:52:43,220 INFO [metro.replication.incremental.append.max_value] Append/MaxValue concluído (task_identifier=raw.test_watermark_append, rows=5, watermark=2026-01-15 12:00:00)
+2026-08-17 01:52:43,220 INFO [metro.sources.sql.postgresql] Conexão PostgreSQL encerrada (runtime=stackoverflow_postgres_database)
+2026-08-17 01:52:43,220 INFO [metro.cli.main] Replicação concluída (table=public.test_watermark)

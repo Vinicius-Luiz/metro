@@ -73,3 +73,12 @@ class TargetEndpoint(Endpoint):
         raise NotImplementedError(
             f"{type(self).__name__} não implementa discard_staging"
         )
+
+    def commit_append_staging(self, dataset_path: str) -> None:
+        """Promove arquivos de `_tmp` para o destino final sem apagar existentes.
+
+        Usado por Append/MaxValue em execuções após a primeira.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} não implementa commit_append_staging"
+        )

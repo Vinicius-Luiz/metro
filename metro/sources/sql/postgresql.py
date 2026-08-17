@@ -38,7 +38,7 @@ class PostgreSQLSource(SourceEndpoint):
         )
         self._secret_provider = secret_provider
         self._connection: psycopg.Connection[Any] | None = None
-        self._lower_bound: tuple[str, Any] | None = None
+        self._lower_bound: tuple[str, Any, bool] | None = None
 
     def connect(self) -> None:
         secret = self._secret_provider.get_secret(self.runtime)
@@ -100,15 +100,22 @@ class PostgreSQLSource(SourceEndpoint):
         logger.debug("Colunas da query padrão: %s", columns)
         return query
 
-    def apply_lower_bound(self, reference_column: str, min_value: Any) -> None:
+    def apply_lower_bound(
+        self,
+        reference_column: str,
+        min_value: Any,
+        *,
+        inclusive: bool = True,
+    ) -> None:
         if not reference_column or not reference_column.strip():
             raise ValueError("reference_column deve ser um identificador não vazio")
-        self._lower_bound = (reference_column.strip(), min_value)
+        self._lower_bound = (reference_column.strip(), min_value, inclusive)
         logger.info(
-            "Lower bound aplicado (runtime=%s, column=%s, min_value=%s)",
+            "Lower bound aplicado (runtime=%s, column=%s, min_value=%s, inclusive=%s)",
             self.runtime,
             self._lower_bound[0],
             min_value,
+            inclusive,
         )
 
     def read(self) -> pl.DataFrame:
@@ -174,10 +181,13 @@ class PostgreSQLSource(SourceEndpoint):
         if self._lower_bound is None:
             return query, None
 
-        column_name, min_value = self._lower_bound
+        column_name, min_value, inclusive = self._lower_bound
+        operator = ">=" if inclusive else ">"
+        # Append/MaxValue usa exclusive (>) para não reprocessar o watermark.
+        # Replace/Partition usa inclusive (>=) para cobrir o início da janela.
         wrapped = (
             f"SELECT * FROM ({query}) AS _metro_sub "
-            f"WHERE {_quote_ident(column_name)} >= %s"
+            f"WHERE {_quote_ident(column_name)} {operator} %s"
         )
         return wrapped, (min_value,)
 

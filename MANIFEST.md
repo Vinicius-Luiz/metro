@@ -236,13 +236,7 @@ id
 sequence
 ```
 
-O METRO pode determinar o maior valor existente:
-
-```text
-MAX(reference_column)
-```
-
-e utilizar esse valor como ponto de referência para a próxima execução.
+O METRO determina o maior valor existente (`MAX(reference_column)`) e utiliza esse valor como watermark para a próxima execução.
 
 Exemplo:
 
@@ -252,10 +246,21 @@ replication:
 
   strategy:
     type: append
-    method: max_value
     reference_column: updated_at
-    aggregation: max
 ```
+
+Fluxo de execução:
+
+1. **Primeira execução** (sem watermark):
+   - Extrai dataset completo
+   - Cria watermark inicial
+   - Escreve dataset via `commit_staging()`
+
+2. **Execuções subsequentes**:
+   - Consulta watermark atual via WatermarkClient
+   - Aplica filtro `WHERE reference_column > watermark`
+   - Acrescenta novos dados via `commit_append_staging()`
+   - Atualiza watermark **somente após commit bem-sucedido**
 
 
 
@@ -299,38 +304,92 @@ replication:
 
 
 
+## Particionamento Hive
+
+Todos os **3 modos de replicação** suportam particionamento Hive temporal opcional:
+
+### Full Load com particionamento
+
+```yaml
+replication:
+  mode: full
+  partition:
+    type: month
+    reference_column: order_date
+```
+
+Layout de saída:
+
+```text
+local/raw/orders/
+├── month=01/
+│   └── part_0001.parquet
+├── month=02/
+│   └── part_0001.parquet
+└── month=03/
+    └── part_0001.parquet
+```
+
+### Incremental Replace com particionamento
+
+```yaml
+replication:
+  mode: incremental
+  strategy:
+    type: replace
+    reference_column: last_update
+    lookback_periods: 3
+    partition:
+      type: year
+```
+
+- Particionamento é **obrigatório** para Replace
+- `lookback_periods` determina quantas partições serão substituídas
+
+### Incremental Append com particionamento
+
+```yaml
+replication:
+  mode: incremental
+  strategy:
+    type: append
+    reference_column: created_at
+    partition:
+      type: day
+      reference_column: created_at
+```
+
+- Particionamento é **opcional** para Append
+- Primeira execução: cria dataset particionado inicial completo
+- Execuções subsequentes: acrescenta novos arquivos nas partições existentes ou cria novas partições
+- Watermark continua funcionando normalmente independente do particionamento
+
+
+
 # Watermark
 
 O METRO não possui um banco de dados auxiliar próprio.
 
-O estado necessário para estratégias incrementais, como watermarks, pode ser obtido através de um componente externo denominado **Watermark Provider**.
+O estado necessário para estratégias incrementais Append é obtido através
+do **WatermarkClient**, que consome uma **API HTTP externa**.
 
 ```text
 METRO
   │
   ▼
-Watermark Provider
-  │
-  ├── API
-  ├── Local
-  └── outras implementações futuras
-```
-
-Por exemplo:
-
-```text
-METRO
+WatermarkClient (HTTP)
   │
   ▼
 Watermark API
   │
   ▼
-PostgreSQL
+PostgreSQL (infra do serviço — fora do core)
 ```
 
-O PostgreSQL, nesse caso, pertence à infraestrutura do serviço de watermark e **não ao METRO**.
+O PostgreSQL pertence à infraestrutura do serviço de watermark e **não ao METRO**.
 
-Essa separação permite que o motor permaneça desacoplado de qualquer banco de dados auxiliar.
+No desenvolvimento local, a API vive em `.watermark/` e o database é
+`metro_watermark`.
 
 # Runtime
 
@@ -452,10 +511,13 @@ replication:
 
   strategy:
     type: append
-    method: max_value
     reference_column: updated_at
-    aggregation: max
 ```
+
+Pré-requisitos:
+
+- Watermark API rodando
+- CLI com `--watermark-api-url <url>`
 
 
 
@@ -521,17 +583,18 @@ metro/
 │
 ├── replication/
 │   ├── base
-│   ├── full_load
+│   ├── partitioning          # helpers Hive (year/month/day)
+│   ├── writer                # write_part / write_batched / write_partitioned
+│   ├── full_load/
+│   │   └── strategy
 │   └── incremental/
-│       ├── base
 │       ├── append/
 │       │   └── max_value
 │       └── replace/
 │           └── partition
 │
 ├── watermark/
-│   ├── base
-│   └── api
+│   └── client
 │
 ├── queries/
 │   ├── base
@@ -614,7 +677,7 @@ O METRO será desenvolvido seguindo alguns princípios:
 - [x] `SourceEndpoint`
 - [x] `TargetEndpoint`
 - [x] `ReplicationStrategy`
-- [ ] `WatermarkProvider`
+- [x] `WatermarkClient`
 - [x] `SecretProvider`
 - [x] `QueryRepository`
 
@@ -624,9 +687,10 @@ O METRO será desenvolvido seguindo alguns princípios:
 
 - [x] Integração com Polars
 - [x] Full Load
-- [ ] Incremental Append / MaxValue
+- [x] Incremental Append / MaxValue
 - [x] Incremental Replace / Partition
-- [x] Escrita Parquet
+- [x] Particionamento Hive compartilhado (`partitioning` + `writer`)
+- [x] Escrita Parquet (plana via `write_batched`, particionada via `write_partitioned`)
 - [x] Escrita atômica via `_tmp`
 
 
@@ -654,7 +718,7 @@ O METRO será desenvolvido seguindo alguns princípios:
 - [x] CLI `metro run` (1 tabela por execução)
 - [x] Logging em console + arquivo (`logs/`)
 - [ ] AWS Secrets Manager
-- [ ] Watermark API
+- [x] Watermark API (local, PostgreSQL externo)
 - [ ] Docker
 - [ ] Execução em AWS ECS
 
@@ -662,9 +726,9 @@ O METRO será desenvolvido seguindo alguns princípios:
 
 # Status
 
-> **Fluxos funcionais: PostgreSQL → Local (Full Load e Incremental Replace/Partition), via CLI `metro run`.**
+> **Fluxos funcionais: PostgreSQL → Local (Full Load, Incremental Replace/Partition e Incremental Append/MaxValue), via CLI `metro run`.**
 
-Já é possível executar tasks de exemplo Pagila (`tasks/pagila_film.yaml`, `tasks/pagila_actor.yaml` e `tasks/pagila_film_replace.yaml`), com ou sem `query_path`, materializando Parquet em `./local` (via staging `_tmp`) e gerando logs em `./logs`.
+Já é possível executar tasks de exemplo Pagila e StackOverflow em `tasks/full_load/`, `tasks/incremental_replace/` e `tasks/incremental_append/`, com ou sem `query_path`, materializando Parquet em `./local` (via staging `_tmp`) e gerando logs em `./logs`. Append depende da Watermark API em `.watermark/`; roteiro manual em `.watermark/tests/passo_a_passo.txt`.
 
 O METRO é um novo projeto, inspirado na experiência e nos conceitos desenvolvidos anteriormente no TREMpy, mas com uma arquitetura e objetivo diferentes: substituir a replicação transacional baseada em CDC por um motor de **Full Load e Incremental Load orientado à materialização de datasets em Parquet**.
 
