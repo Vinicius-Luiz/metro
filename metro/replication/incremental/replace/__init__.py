@@ -1,0 +1,1 @@
+"""Estratégias Incremental Replace."""

@@ -20,7 +20,7 @@ YAML referencia a query via `query_path`; conteúdo fica no Query Repository.
 ```yaml
 source:
   type: postgresql
-  runtime: customer_database
+  runtime: customer_postgres_database
   query_path: orders.sql
 ```
 
@@ -30,12 +30,15 @@ Query Repository localiza/fornece o conteúdo; Source interpreta/executa.
 
 `runtime` é o identificador do secret/configuração externa do Endpoint.
 
+Para Sources de banco, use o padrão `<nome>_<database_type>_database`
+(ex.: `pagila_postgres_database`, `customer_mongodb_database`).
+
 Não introduza camada intermediária entre `runtime` e Secret Provider — o valor resolve diretamente o secret/config correspondente.
 
 ```yaml
 source:
   type: postgresql
-  runtime: customer_database
+  runtime: customer_postgres_database
 
 target:
   type: s3

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import gc
 import logging
 
 import polars as pl
@@ -10,19 +9,28 @@ import psutil
 
 from metro.core.table import Table
 from metro.replication.base import ReplicationStrategy
+from metro.replication.writer import collect_garbage, write_part, write_partitioned
 from metro.sources.base import SourceEndpoint
 from metro.targets.base import TargetEndpoint
 
 logger = logging.getLogger(__name__)
 
-_BYTES_PER_MIB = 1024 * 1024
-
 
 class FullLoadStrategy(ReplicationStrategy):
     """Ingestão completa do dataset: Source → Polars → Parquet → Target."""
 
-    def __init__(self) -> None:
-        super().__init__(mode="full_load")
+    def __init__(
+        self,
+        reference_column: str | None = None,
+        granularity: str | None = None,
+    ) -> None:
+        super().__init__(
+            mode="full_load",
+            reference_column=reference_column,
+            partition_type=granularity,
+        )
+        self._reference_column = reference_column
+        self._granularity = granularity
 
     def execute(
         self,
@@ -30,23 +38,68 @@ class FullLoadStrategy(ReplicationStrategy):
         target: TargetEndpoint,
         table: Table,
     ) -> None:
-        if source.chunk_size is None and target.chunk_size is None:
-            self._execute_single(source, target, table)
-            return
+        dataset_path = table.target_dataset_path
+        staging_path = target.begin_staging(dataset_path)
+        try:
+            if self._reference_column is not None and self._granularity is not None:
+                self._execute_partitioned(
+                    source,
+                    target,
+                    table,
+                    staging_path,
+                )
+            elif source.chunk_size is None and target.chunk_size is None:
+                self._execute_single(source, target, table, staging_path)
+            else:
+                self._execute_batched(source, target, table, staging_path)
+            target.commit_staging(dataset_path, partitions=None)
+        except Exception:
+            target.discard_staging(dataset_path)
+            raise
 
-        self._execute_batched(source, target, table)
+    def _execute_partitioned(
+        self,
+        source: SourceEndpoint,
+        target: TargetEndpoint,
+        table: Table,
+        staging_path: str,
+    ) -> None:
+        """Full Load com escrita Hive por `reference_column` e granularidade."""
+        assert self._reference_column is not None
+        assert self._granularity is not None
+        logger.info(
+            "Iniciando Full Load particionado (table=%s, path=%s, "
+            "column=%s, granularity=%s)",
+            table.qualified_name,
+            table.target_dataset_path,
+            self._reference_column,
+            self._granularity,
+        )
+        write_partitioned(
+            source=source,
+            target=target,
+            staging_path=staging_path,
+            reference_column=self._reference_column,
+            granularity=self._granularity,
+            allowed_partitions=None,
+        )
+        logger.info(
+            "Full Load particionado concluído (table=%s)",
+            table.qualified_name,
+        )
 
     def _execute_single(
         self,
         source: SourceEndpoint,
         target: TargetEndpoint,
         table: Table,
+        staging_path: str,
     ) -> None:
-        dataset_path = table.target_dataset_path
+        """Full Load em uma única leitura e um único arquivo Parquet."""
         logger.info(
             "Iniciando Full Load (table=%s, path=%s)",
             table.qualified_name,
-            dataset_path,
+            table.target_dataset_path,
         )
 
         dataframe = source.read()
@@ -58,8 +111,7 @@ class FullLoadStrategy(ReplicationStrategy):
             {name: str(dtype) for name, dtype in dataframe.schema.items()},
         )
 
-        target.delete_partition(dataset_path)
-        _write_part(target, dataset_path, 1, dataframe)
+        write_part(target, staging_path, 1, dataframe)
         logger.info(
             "Full Load concluído (table=%s, rows=%s)",
             table.qualified_name,
@@ -71,7 +123,9 @@ class FullLoadStrategy(ReplicationStrategy):
         source: SourceEndpoint,
         target: TargetEndpoint,
         table: Table,
+        staging_path: str,
     ) -> None:
+        """Full Load com leitura/escrita em batches (`chunk_size`)."""
         if not target.supports_batch_write():
             raise RuntimeError(
                 f"{type(target).__name__} não suporta escrita em batches. "
@@ -79,7 +133,6 @@ class FullLoadStrategy(ReplicationStrategy):
                 "que implemente supports_batch_write()."
             )
 
-        dataset_path = table.target_dataset_path
         write_size = target.chunk_size
         enable_gc = write_size is not None
         process = psutil.Process() if enable_gc else None
@@ -87,12 +140,10 @@ class FullLoadStrategy(ReplicationStrategy):
             "Iniciando Full Load em batches (table=%s, path=%s, "
             "source.chunk_size=%s, target.chunk_size=%s)",
             table.qualified_name,
-            dataset_path,
+            table.target_dataset_path,
             source.chunk_size,
             write_size,
         )
-
-        target.delete_partition(dataset_path)
 
         accumulated: list[pl.DataFrame] = []
         accumulated_rows = 0
@@ -115,7 +166,7 @@ class FullLoadStrategy(ReplicationStrategy):
 
             if write_size is None:
                 file_index += 1
-                _write_part(target, dataset_path, file_index, dataframe)
+                write_part(target, staging_path, file_index, dataframe)
                 total_rows += dataframe.height
                 return
 
@@ -123,19 +174,19 @@ class FullLoadStrategy(ReplicationStrategy):
                 chunk = dataframe.slice(0, write_size)
                 dataframe = dataframe.slice(write_size)
                 file_index += 1
-                _write_part(target, dataset_path, file_index, chunk)
+                write_part(target, staging_path, file_index, chunk)
                 total_rows += chunk.height
                 del chunk
-                _collect_garbage(process)
+                collect_garbage(process)
 
             if dataframe.height == 0:
                 return
             if force:
                 file_index += 1
-                _write_part(target, dataset_path, file_index, dataframe)
+                write_part(target, staging_path, file_index, dataframe)
                 total_rows += dataframe.height
                 del dataframe
-                _collect_garbage(process)
+                collect_garbage(process)
                 return
 
             accumulated = [dataframe]
@@ -165,53 +216,3 @@ class FullLoadStrategy(ReplicationStrategy):
             file_index,
             read_batches,
         )
-
-
-def _write_part(
-    target: TargetEndpoint,
-    dataset_path: str,
-    file_index: int,
-    dataframe: pl.DataFrame,
-) -> None:
-    part_path = f"{dataset_path}/part_{file_index:04d}.parquet"
-    logger.info(
-        "Materializando parte %s (path=%s, rows=%s)",
-        file_index,
-        part_path,
-        dataframe.height,
-    )
-    target.write(dataframe, part_path)
-
-
-def _rss_mib(process: psutil.Process) -> float:
-    return process.memory_info().rss / _BYTES_PER_MIB
-
-
-def _collect_garbage(process: psutil.Process | None) -> None:
-    """Coleta lixo após a parte já estar persistida no Target."""
-    if process is None:
-        return
-
-    memory_before_mb = _rss_mib(process)
-    counts_before = gc.get_count()
-    collected = gc.collect()
-    memory_after_mb = _rss_mib(process)
-    freed_mb = memory_before_mb - memory_after_mb
-    freed_percent = (
-        (freed_mb / memory_before_mb) * 100 if memory_before_mb > 0 else 0.0
-    )
-    logger.info(
-        "Garbage collection executado | memory_before_mb=%.1f | "
-        "memory_after_mb=%.1f | freed_mb=%.1f | freed_percent=%.1f | collected=%s",
-        memory_before_mb,
-        memory_after_mb,
-        freed_mb,
-        freed_percent,
-        collected,
-    )
-    logger.debug(
-        "GC detalhes | counts_before=%s | counts_after=%s | stats=%s",
-        counts_before,
-        gc.get_count(),
-        gc.get_stats(),
-    )

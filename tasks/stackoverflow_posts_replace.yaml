@@ -15,7 +15,10 @@ target:
   chunk_size: 200000
 
 replication:
-  mode: full_load
-  partition:
-    type: year
+  mode: incremental
+  strategy:
+    type: replace
     reference_column: creationdate
+    lookback_periods: 17
+    partition:
+      type: year

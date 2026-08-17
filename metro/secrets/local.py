@@ -23,7 +23,7 @@ class LocalSecretProvider(SecretProvider):
     - config dict: `METRO_{RUNTIME}_{FIELD}`
 
     Exemplos:
-    - runtime=`customer_database` → `METRO_CUSTOMER_DATABASE`
+    - runtime=`pagila_postgres_database` → `METRO_PAGILA_POSTGRES_DATABASE`
     - runtime=`development_storage` → `METRO_DEVELOPMENT_STORAGE_BASE_PATH`
     """
 

@@ -11,6 +11,7 @@ from pathlib import Path
 from metro.core.task import Task
 from metro.queries.local import LocalQueryRepository
 from metro.replication.full_load import FullLoadStrategy
+from metro.replication.incremental.replace.partition import ReplacePartitionStrategy
 from metro.secrets.base import SecretProvider
 from metro.secrets.local import LocalSecretProvider
 from metro.sources.base import SourceEndpoint
@@ -25,6 +26,7 @@ LOG_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Ponto de entrada da CLI; retorna código de saída do processo."""
     parser = _build_parser()
     args = parser.parse_args(argv)
 
@@ -117,23 +119,27 @@ def _log_task_parameters(task: Task, secret_provider_name: str) -> None:
         task.target.chunk_size,
     )
     logger.debug(
-        "Parâmetros Replication | mode=%s | strategy=%s",
+        "Parâmetros Replication | mode=%s | strategy=%s | partition=%s",
         task.replication.mode,
         None
         if strategy is None
         else {
             "type": strategy.type,
-            "method": strategy.method,
             "reference_column": strategy.reference_column,
             "aggregation": strategy.aggregation,
+            "lookback_periods": strategy.lookback_periods,
             "partition": None
             if strategy.partition is None
             else strategy.partition.model_dump(),
         },
+        None
+        if task.replication.partition is None
+        else task.replication.partition.model_dump(),
     )
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    """Monta o ArgumentParser da CLI (`metro run …`)."""
     parser = argparse.ArgumentParser(
         prog="metro",
         description="METRO — Motor de Extração, Transferência e Replicação de Objetos",
@@ -201,11 +207,13 @@ def _configure_logging(
 
 
 def _default_log_path(task_path: Path) -> Path:
+    """Gera o path padrão `logs/<task>_<timestamp>.log`."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return DEFAULT_LOG_DIR / f"{task_path.stem}_{timestamp}.log"
 
 
 def _build_secret_provider(name: str) -> SecretProvider:
+    """Instancia o Secret Provider pedido pela CLI."""
     if name == "local":
         return LocalSecretProvider()
     raise ValueError(f"Secret provider não suportado: {name}")
@@ -216,6 +224,7 @@ def _build_source(
     secret_provider: SecretProvider,
     query_repository: LocalQueryRepository,
 ) -> SourceEndpoint:
+    """Instancia o Source Endpoint conforme `source.type` da task."""
     source_type = task.source.type
     if source_type == "postgresql":
         return PostgreSQLSource(
@@ -230,6 +239,7 @@ def _build_source(
 
 
 def _build_target(task: Task, secret_provider: SecretProvider) -> TargetEndpoint:
+    """Instancia o Target Endpoint conforme `target.type` da task."""
     target_type = task.target.type
     if target_type == "local":
         return LocalTarget(
@@ -241,8 +251,38 @@ def _build_target(task: Task, secret_provider: SecretProvider) -> TargetEndpoint
 
 
 def _build_strategy(task: Task):
+    """Instancia a Replication Strategy conforme `replication` da task."""
     if task.replication.mode == "full_load":
+        partition = task.replication.partition
+        if partition is not None:
+            if partition.reference_column is None:
+                raise ValueError(
+                    "replication.partition.reference_column é obrigatório "
+                    "no full_load particionado"
+                )
+            return FullLoadStrategy(
+                reference_column=partition.reference_column,
+                granularity=partition.type,
+            )
         return FullLoadStrategy()
+    if task.replication.mode == "incremental":
+        strategy = task.replication.strategy
+        if strategy is None:
+            raise ValueError("replication.strategy é obrigatório para mode=incremental")
+        if strategy.type == "replace":
+            if strategy.partition is None or strategy.lookback_periods is None:
+                raise ValueError(
+                    "replace/partition exige strategy.partition e "
+                    "strategy.lookback_periods"
+                )
+            return ReplacePartitionStrategy(
+                reference_column=strategy.reference_column,
+                granularity=strategy.partition.type,
+                lookback_periods=strategy.lookback_periods,
+            )
+        raise ValueError(
+            f"Replication strategy type não suportado ainda: {strategy.type}"
+        )
     raise ValueError(
         f"Replication mode não suportado ainda: {task.replication.mode}"
     )

@@ -38,6 +38,7 @@ class PostgreSQLSource(SourceEndpoint):
         )
         self._secret_provider = secret_provider
         self._connection: psycopg.Connection[Any] | None = None
+        self._lower_bound: tuple[str, Any] | None = None
 
     def connect(self) -> None:
         secret = self._secret_provider.get_secret(self.runtime)
@@ -99,15 +100,26 @@ class PostgreSQLSource(SourceEndpoint):
         logger.debug("Colunas da query padrão: %s", columns)
         return query
 
+    def apply_lower_bound(self, reference_column: str, min_value: Any) -> None:
+        if not reference_column or not reference_column.strip():
+            raise ValueError("reference_column deve ser um identificador não vazio")
+        self._lower_bound = (reference_column.strip(), min_value)
+        logger.info(
+            "Lower bound aplicado (runtime=%s, column=%s, min_value=%s)",
+            self.runtime,
+            self._lower_bound[0],
+            min_value,
+        )
+
     def read(self) -> pl.DataFrame:
         connection = self._require_connection()
-        query = self.resolve_query()
+        query, params = self._prepare_query()
         logger.info("Executando query no PostgreSQL (runtime=%s)", self.runtime)
         logger.debug("Query path: %s", self.query_path)
-        logger.debug("SQL: %s", query)
+        logger.debug("SQL: %s | params=%s", query, params)
 
         with connection.cursor() as cursor:
-            cursor.execute(query)
+            cursor.execute(query, params)
             rows = cursor.fetchall()
             schema = _polars_schema_from_description(cursor.description)
 
@@ -126,17 +138,17 @@ class PostgreSQLSource(SourceEndpoint):
             return
 
         connection = self._require_connection()
-        query = self.resolve_query()
+        query, params = self._prepare_query()
         logger.info(
             "Lendo PostgreSQL em batches (runtime=%s, chunk_size=%s)",
             self.runtime,
             self.chunk_size,
         )
-        logger.debug("SQL (batches): %s", query)
+        logger.debug("SQL (batches): %s | params=%s", query, params)
 
         with connection.cursor(name="metro_postgresql_cursor") as cursor:
             cursor.itersize = self.chunk_size
-            cursor.execute(query)
+            cursor.execute(query, params)
 
             batch_index = 0
             schema: dict[str, pl.DataType] | None = None
@@ -156,7 +168,21 @@ class PostgreSQLSource(SourceEndpoint):
                 )
                 yield batch
 
+    def _prepare_query(self) -> tuple[str, tuple[Any, ...] | None]:
+        """Resolve a query e aplica lower bound incremental, se houver."""
+        query = self.resolve_query()
+        if self._lower_bound is None:
+            return query, None
+
+        column_name, min_value = self._lower_bound
+        wrapped = (
+            f"SELECT * FROM ({query}) AS _metro_sub "
+            f"WHERE {_quote_ident(column_name)} >= %s"
+        )
+        return wrapped, (min_value,)
+
     def _log_table_metadata(self, table: Table) -> None:
+        """Registra metadados da tabela via `information_schema` em nível debug."""
         connection = self._require_connection()
         columns = self._list_column_metadata(connection, table)
         logger.debug(
@@ -174,6 +200,7 @@ class PostgreSQLSource(SourceEndpoint):
         connection: psycopg.Connection[Any],
         table: Table,
     ) -> list[dict[str, Any]]:
+        """Lista colunas da tabela a partir de `information_schema.columns`."""
         sql = """
             SELECT
                 column_name,
@@ -206,6 +233,7 @@ class PostgreSQLSource(SourceEndpoint):
             ]
 
     def _require_connection(self) -> psycopg.Connection[Any]:
+        """Garante que a conexão PostgreSQL está aberta."""
         if self._connection is None:
             raise RuntimeError(
                 "PostgreSQLSource não está conectado. Chame connect() antes de read()."
@@ -223,6 +251,7 @@ def _dataframe_from_rows(
     rows: list[tuple[Any, ...]],
     schema: dict[str, pl.DataType],
 ) -> pl.DataFrame:
+    """Converte linhas do cursor em Polars DataFrame com o schema informado."""
     if not rows:
         return pl.DataFrame(schema=schema) if schema else pl.DataFrame()
     if not schema:
@@ -233,6 +262,7 @@ def _dataframe_from_rows(
 def _polars_schema_from_description(
     description: Any,
 ) -> dict[str, pl.DataType]:
+    """Monta schema Polars a partir de `cursor.description` do Psycopg."""
     if not description:
         return {}
     return {
@@ -263,4 +293,5 @@ _PG_OID_TO_POLARS: dict[int, pl.DataType] = {
 
 
 def _pg_type_to_polars(type_code: int) -> pl.DataType:
+    """Mapeia OID PostgreSQL para tipo Polars (fallback: String)."""
     return _PG_OID_TO_POLARS.get(int(type_code), pl.String)

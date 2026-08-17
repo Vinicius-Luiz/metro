@@ -1,0 +1,76 @@
+# Metadata de colunas:
+schema	tabela	ordem	coluna	tipo	max_length	is_nullable
+dbo	Badges	1	Id	int	4	0
+dbo	Badges	2	Name	nvarchar	80	0
+dbo	Badges	3	UserId	int	4	0
+dbo	Badges	4	Date	datetime	8	0
+dbo	Comments	1	Id	int	4	0
+dbo	Comments	2	CreationDate	datetime	8	0
+dbo	Comments	3	PostId	int	4	0
+dbo	Comments	4	Score	int	4	1
+dbo	Comments	5	Text	nvarchar	1400	0
+dbo	Comments	6	UserId	int	4	1
+dbo	LinkTypes	1	Id	int	4	0
+dbo	LinkTypes	2	Type	varchar	50	0
+dbo	PostLinks	1	Id	int	4	0
+dbo	PostLinks	2	CreationDate	datetime	8	0
+dbo	PostLinks	3	PostId	int	4	0
+dbo	PostLinks	4	RelatedPostId	int	4	0
+dbo	PostLinks	5	LinkTypeId	int	4	0
+dbo	Posts	1	Id	int	4	0
+dbo	Posts	2	AcceptedAnswerId	int	4	1
+dbo	Posts	3	AnswerCount	int	4	1
+dbo	Posts	4	Body	nvarchar	-1	0
+dbo	Posts	5	ClosedDate	datetime	8	1
+dbo	Posts	6	CommentCount	int	4	1
+dbo	Posts	7	CommunityOwnedDate	datetime	8	1
+dbo	Posts	8	CreationDate	datetime	8	0
+dbo	Posts	9	FavoriteCount	int	4	1
+dbo	Posts	10	LastActivityDate	datetime	8	0
+dbo	Posts	11	LastEditDate	datetime	8	1
+dbo	Posts	12	LastEditorDisplayName	nvarchar	80	1
+dbo	Posts	13	LastEditorUserId	int	4	1
+dbo	Posts	14	OwnerUserId	int	4	1
+dbo	Posts	15	ParentId	int	4	1
+dbo	Posts	16	PostTypeId	int	4	0
+dbo	Posts	17	Score	int	4	0
+dbo	Posts	18	Tags	nvarchar	300	1
+dbo	Posts	19	Title	nvarchar	500	1
+dbo	Posts	20	ViewCount	int	4	0
+dbo	PostTypes	1	Id	int	4	0
+dbo	PostTypes	2	Type	nvarchar	100	0
+dbo	Users	1	Id	int	4	0
+dbo	Users	2	AboutMe	nvarchar	-1	1
+dbo	Users	3	Age	int	4	1
+dbo	Users	4	CreationDate	datetime	8	0
+dbo	Users	5	DisplayName	nvarchar	80	0
+dbo	Users	6	DownVotes	int	4	0
+dbo	Users	7	EmailHash	nvarchar	80	1
+dbo	Users	8	LastAccessDate	datetime	8	0
+dbo	Users	9	Location	nvarchar	200	1
+dbo	Users	10	Reputation	int	4	0
+dbo	Users	11	UpVotes	int	4	0
+dbo	Users	12	Views	int	4	0
+dbo	Users	13	WebsiteUrl	nvarchar	400	1
+dbo	Users	14	AccountId	int	4	1
+dbo	Votes	1	Id	int	4	0
+dbo	Votes	2	PostId	int	4	0
+dbo	Votes	3	UserId	int	4	1
+dbo	Votes	4	BountyAmount	int	4	1
+dbo	Votes	5	VoteTypeId	int	4	0
+dbo	Votes	6	CreationDate	datetime	8	0
+dbo	VoteTypes	1	Id	int	4	0
+dbo	VoteTypes	2	Name	varchar	50	0
+
+
+# Metadata de linhas
+tabela	total_colunas	total_linhas
+Posts	20	74583900
+Votes	6	60860184
+Comments	6	23251098
+Badges	4	4408076
+Users	14	4191572
+PostLinks	5	807595
+VoteTypes	2	30
+PostTypes	2	16
+LinkTypes	2	4

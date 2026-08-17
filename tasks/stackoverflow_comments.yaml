@@ -6,7 +6,7 @@ table:
 
 source:
   type: postgresql
-  runtime: stackoverflow_database
+  runtime: stackoverflow_postgres_database
   chunk_size: 50000
 
 target:

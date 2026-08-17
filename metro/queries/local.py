@@ -24,6 +24,7 @@ class LocalQueryRepository(QueryRepository):
 
     @property
     def base_dir(self) -> Path:
+        """Diretório raiz onde as queries são resolvidas."""
         return self._base_dir
 
     def resolve(self, query_path: str) -> str:

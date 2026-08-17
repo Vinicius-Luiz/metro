@@ -140,7 +140,7 @@ O YAML contém apenas uma referência:
 ```yaml
 source:
   type: postgresql
-  runtime: customer_database
+  runtime: customer_postgres_database
   query_path: orders.sql
 ```
 
@@ -149,7 +149,7 @@ ou:
 ```yaml
 source:
   type: mongodb
-  runtime: customer_mongodb
+  runtime: customer_mongodb_database
   query_path: orders.js
 ```
 
@@ -290,8 +290,8 @@ replication:
 
   strategy:
     type: replace
-    method: partition
     reference_column: created_at
+    lookback_periods: 3
 
     partition:
       type: year
@@ -338,12 +338,15 @@ Cada Source e Target possui um `runtime`.
 
 O `runtime` representa uma referência à configuração externa necessária para estabelecer a conexão com o Endpoint.
 
+Para Sources de banco, o nome segue o padrão `<nome>_<database_type>_database`
+(ex.: `customer_postgres_database`, `customer_mongodb_database`).
+
 Exemplo:
 
 ```yaml
 source:
   type: postgresql
-  runtime: customer_database
+  runtime: customer_postgres_database
 
 target:
   type: s3
@@ -353,7 +356,7 @@ target:
 O runtime pode apontar para um secret externo:
 
 ```text
-runtime: customer_database
+runtime: customer_postgres_database
              │
              ▼
        Secret Provider
@@ -386,7 +389,7 @@ Assim, a mesma tarefa pode ser utilizada em diferentes ambientes:
                  Replication YAML
                         │
                         ▼
-              runtime: customer_database
+              runtime: customer_postgres_database
                         │
               ┌─────────┴─────────┐
               │                   │
@@ -414,7 +417,7 @@ table:
 
 source:
   type: postgresql
-  runtime: customer_database
+  runtime: customer_postgres_database
 
 target:
   type: local
@@ -437,7 +440,7 @@ table:
 
 source:
   type: postgresql
-  runtime: customer_database
+  runtime: customer_postgres_database
   query_path: customers.sql
 
 target:
@@ -466,7 +469,7 @@ table:
 
 source:
   type: mongodb
-  runtime: customer_mongodb
+  runtime: customer_mongodb_database
   query_path: orders.js
 
 target:
@@ -478,8 +481,8 @@ replication:
 
   strategy:
     type: replace
-    method: partition
     reference_column: created_at
+    lookback_periods: 3
 
     partition:
       type: year
@@ -566,7 +569,7 @@ A tarefa permanece a mesma:
 ```yaml
 source:
   type: postgresql
-  runtime: customer_database
+  runtime: customer_postgres_database
 
 target:
   type: s3
@@ -622,8 +625,9 @@ O METRO será desenvolvido seguindo alguns princípios:
 - [x] Integração com Polars
 - [x] Full Load
 - [ ] Incremental Append / MaxValue
-- [ ] Incremental Replace / Partition
+- [x] Incremental Replace / Partition
 - [x] Escrita Parquet
+- [x] Escrita atômica via `_tmp`
 
 
 
@@ -658,9 +662,9 @@ O METRO será desenvolvido seguindo alguns princípios:
 
 # Status
 
-> **Primeiro fluxo funcional entregue: PostgreSQL → Local (Full Load), via CLI `metro run`.**
+> **Fluxos funcionais: PostgreSQL → Local (Full Load e Incremental Replace/Partition), via CLI `metro run`.**
 
-Já é possível executar tasks de exemplo Pagila (`tasks/pagila_film.yaml` e `tasks/pagila_actor.yaml`), com ou sem `query_path`, materializando Parquet em `./local` e gerando logs em `./logs`.
+Já é possível executar tasks de exemplo Pagila (`tasks/pagila_film.yaml`, `tasks/pagila_actor.yaml` e `tasks/pagila_film_replace.yaml`), com ou sem `query_path`, materializando Parquet em `./local` (via staging `_tmp`) e gerando logs em `./logs`.
 
 O METRO é um novo projeto, inspirado na experiência e nos conceitos desenvolvidos anteriormente no TREMpy, mas com uma arquitetura e objetivo diferentes: substituir a replicação transacional baseada em CDC por um motor de **Full Load e Incremental Load orientado à materialização de datasets em Parquet**.
 

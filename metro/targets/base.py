@@ -8,6 +8,8 @@ import polars as pl
 
 from metro.core.endpoint import Endpoint
 
+TEMP_DIRNAME = "_tmp"
+
 
 class TargetEndpoint(Endpoint):
     """Contrato para destinos de materialização do METRO.
@@ -44,4 +46,30 @@ class TargetEndpoint(Endpoint):
         """
         raise NotImplementedError(
             f"{type(self).__name__} não implementa delete_partition"
+        )
+
+    def begin_staging(self, dataset_path: str) -> str:
+        """Prepara a pasta de staging (`_tmp`) e retorna o path relativo de escrita."""
+        raise NotImplementedError(
+            f"{type(self).__name__} não implementa begin_staging"
+        )
+
+    def commit_staging(
+        self,
+        dataset_path: str,
+        partitions: list[str] | None = None,
+    ) -> None:
+        """Promove o conteúdo de `_tmp` para o destino final.
+
+        Quando `partitions` é None, substitui o dataset inteiro.
+        Quando informado, substitui apenas as subpastas de partição listadas.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} não implementa commit_staging"
+        )
+
+    def discard_staging(self, dataset_path: str) -> None:
+        """Descarta a pasta de staging (`_tmp`) sem alterar o destino final."""
+        raise NotImplementedError(
+            f"{type(self).__name__} não implementa discard_staging"
         )

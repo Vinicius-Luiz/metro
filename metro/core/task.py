@@ -13,6 +13,7 @@ from metro.core.table import Table
 KNOWN_SOURCE_TYPES = frozenset({"postgresql", "sqlserver", "oracle", "mongodb"})
 KNOWN_TARGET_TYPES = frozenset({"s3", "local"})
 REPLICATION_MODES = frozenset({"full_load", "incremental"})
+PARTITION_TYPES = frozenset({"year", "month", "day"})
 
 
 class TaskValidationError(ValueError):
@@ -30,6 +31,7 @@ class SourceConfig(BaseModel):
     @field_validator("type")
     @classmethod
     def type_must_be_known(cls, value: str) -> str:
+        """Normaliza e valida `source.type` contra os tipos conhecidos."""
         normalized = value.strip().lower()
         if normalized not in KNOWN_SOURCE_TYPES:
             raise TaskValidationError(
@@ -49,6 +51,7 @@ class TargetConfig(BaseModel):
     @field_validator("type")
     @classmethod
     def type_must_be_known(cls, value: str) -> str:
+        """Normaliza e valida `target.type` contra os tipos conhecidos."""
         normalized = value.strip().lower()
         if normalized not in KNOWN_TARGET_TYPES:
             raise TaskValidationError(
@@ -59,35 +62,46 @@ class TargetConfig(BaseModel):
 
 
 class PartitionConfig(BaseModel):
-    """Configuração de partição para estratégia Replace."""
+    """Configuração de partição Hive (Full Load opcional ou Replace)."""
 
     type: str = Field(..., min_length=1)
+    reference_column: str | None = Field(default=None, min_length=1)
+
+    @field_validator("type")
+    @classmethod
+    def type_must_be_known(cls, value: str) -> str:
+        """Normaliza e valida `partition.type` (`year`/`month`/`day`)."""
+        normalized = value.strip().lower()
+        if normalized not in PARTITION_TYPES:
+            raise TaskValidationError(
+                f"partition.type inválido: '{value}'. "
+                f"Tipos conhecidos: {sorted(PARTITION_TYPES)}"
+            )
+        return normalized
 
 
 class StrategyConfig(BaseModel):
-    """Configuração da estratégia incremental."""
+    """Configuração da estratégia incremental.
+
+    O método é implícito pelo type: replace → partition; append → max_value.
+    """
 
     type: Literal["append", "replace"]
-    method: str = Field(..., min_length=1)
     reference_column: str = Field(..., min_length=1)
     aggregation: str | None = None
+    lookback_periods: int | None = Field(default=None, gt=0)
     partition: PartitionConfig | None = None
 
     @model_validator(mode="after")
     def validate_strategy_shape(self) -> StrategyConfig:
-        if self.type == "append" and self.method != "max_value":
-            raise TaskValidationError(
-                f"strategy.method inválido para append: '{self.method}'. "
-                "Esperado: 'max_value'"
-            )
-        if self.type == "replace" and self.method != "partition":
-            raise TaskValidationError(
-                f"strategy.method inválido para replace: '{self.method}'. "
-                "Esperado: 'partition'"
-            )
+        """Garante campos obrigatórios de `replace` (partition e lookback)."""
         if self.type == "replace" and self.partition is None:
             raise TaskValidationError(
                 "strategy.partition é obrigatório quando type='replace'"
+            )
+        if self.type == "replace" and self.lookback_periods is None:
+            raise TaskValidationError(
+                "strategy.lookback_periods é obrigatório quando type='replace'"
             )
         return self
 
@@ -97,9 +111,11 @@ class ReplicationConfig(BaseModel):
 
     mode: Literal["full_load", "incremental"]
     strategy: StrategyConfig | None = None
+    partition: PartitionConfig | None = None
 
     @model_validator(mode="after")
     def validate_mode_strategy(self) -> ReplicationConfig:
+        """Valida coerência entre `mode`, `strategy` e `partition`."""
         if self.mode == "incremental" and self.strategy is None:
             raise TaskValidationError(
                 "replication.strategy é obrigatório quando mode='incremental'"
@@ -107,6 +123,23 @@ class ReplicationConfig(BaseModel):
         if self.mode == "full_load" and self.strategy is not None:
             raise TaskValidationError(
                 "replication.strategy não deve ser informado quando mode='full_load'"
+            )
+        if self.mode == "incremental" and self.partition is not None:
+            raise TaskValidationError(
+                "replication.partition não deve ser informado quando "
+                "mode='incremental' (use strategy.partition)"
+            )
+        if (
+            self.mode == "full_load"
+            and self.partition is not None
+            and (
+                self.partition.reference_column is None
+                or not self.partition.reference_column.strip()
+            )
+        ):
+            raise TaskValidationError(
+                "replication.partition.reference_column é obrigatório "
+                "quando partition está informado no full_load"
             )
         return self
 

@@ -31,8 +31,10 @@ class Endpoint(ABC):
         """Encerra a conexão com o Endpoint."""
 
     def __enter__(self) -> Endpoint:
+        """Abre a conexão ao entrar no contexto (`with`)."""
         self.connect()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Encerra a conexão ao sair do contexto (`with`)."""
         self.disconnect()
