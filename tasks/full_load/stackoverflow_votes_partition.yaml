@@ -1,8 +1,8 @@
 table:
   schema_name: public
-  name: posts
+  name: votes
   target_schema_name: raw
-  target_name: stackoverflow_posts
+  target_name: stackoverflow_votes
 
 source:
   type: postgresql
@@ -16,3 +16,6 @@ target:
 
 replication:
   mode: full_load
+  partition:
+    type: year
+    reference_column: creationdate

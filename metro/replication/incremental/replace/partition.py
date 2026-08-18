@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import date
 
+from metro.core.metadata import MetadataContext
 from metro.core.table import Table
 from metro.replication.base import ReplicationStrategy
 from metro.replication.partitioning import window_cutoff, window_partitions
@@ -23,6 +24,7 @@ class ReplacePartitionStrategy(ReplicationStrategy):
         reference_column: str,
         granularity: str,
         lookback_periods: int,
+        metadata_context: MetadataContext | None = None,
     ) -> None:
         super().__init__(
             mode="incremental",
@@ -33,6 +35,7 @@ class ReplacePartitionStrategy(ReplicationStrategy):
         )
         self._granularity = granularity
         self._lookback_periods = lookback_periods
+        self._metadata_context = metadata_context
 
     def execute(
         self,
@@ -76,6 +79,7 @@ class ReplacePartitionStrategy(ReplicationStrategy):
                 reference_column=self.reference_column,
                 granularity=self._granularity,
                 allowed_partitions=partition_set,
+                metadata_context=self._metadata_context,
             )
             target.commit_staging(dataset_path, partitions=partitions)
         except Exception:

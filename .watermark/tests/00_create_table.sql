@@ -1,15 +1,15 @@
--- PASSO 0: cria a tabela de teste (vazia).
--- Banco: stackoverflow
---
--- psql -U postgres -h localhost -p 5432 -d stackoverflow -f .watermark/tests/00_create_table.sql
+-- Cria tabela dedicada para testes de Incremental Append (MaxValue).
+-- Executar no banco stackoverflow (runtime: stackoverflow_postgres_database).
+-- psql -U postgres -h localhost -p 5432 -d stackoverflow -f 00_create_table.sql
 
-DROP TABLE IF EXISTS public.test_watermark CASCADE;
+DROP TABLE IF EXISTS public.test_watermark;
 
 CREATE TABLE public.test_watermark (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    value INTEGER NOT NULL,
-    last_update TIMESTAMP NOT NULL DEFAULT NOW()
+    id          SERIAL PRIMARY KEY,
+    name        TEXT NOT NULL,
+    category    TEXT NOT NULL,
+    last_update TIMESTAMP NOT NULL
 );
 
-SELECT COUNT(*) AS total_records FROM public.test_watermark;
+COMMENT ON TABLE public.test_watermark IS
+    'Tabela de teste METRO — Incremental Append / MaxValue';

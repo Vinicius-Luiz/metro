@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from metro.core.metadata import MetadataContext
 from metro.core.table import Table
 from metro.replication.base import ReplicationStrategy
 from metro.replication.writer import write_batched, write_partitioned
@@ -25,6 +26,7 @@ class AppendMaxValueStrategy(ReplicationStrategy):
         aggregation: str = "MAX",
         partition_type: str | None = None,
         partition_column: str | None = None,
+        metadata_context: MetadataContext | None = None,
     ) -> None:
         super().__init__(
             mode="incremental",
@@ -36,6 +38,7 @@ class AppendMaxValueStrategy(ReplicationStrategy):
         )
         self._watermark_client = watermark_client
         self._partition_column = partition_column or reference_column
+        self._metadata_context = metadata_context
 
     def execute(
         self,
@@ -164,6 +167,7 @@ class AppendMaxValueStrategy(ReplicationStrategy):
             target=target,
             staging_path=staging_path,
             track_max=self.reference_column,
+            metadata_context=self._metadata_context,
         )
 
         watermark_type = _infer_watermark_type_from_value(new_watermark)
@@ -201,6 +205,7 @@ class AppendMaxValueStrategy(ReplicationStrategy):
             granularity=self.partition_type,
             allowed_partitions=None,
             track_max=self.reference_column,
+            metadata_context=self._metadata_context,
         )
 
         watermark_type = _infer_watermark_type_from_value(new_watermark)

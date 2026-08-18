@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from metro.core.column import Column
-
 
 class Table(BaseModel):
     """Representa o dataset lógico a ser replicado.
@@ -29,10 +27,6 @@ class Table(BaseModel):
         ...,
         min_length=1,
         description="Nome da tabela no Target",
-    )
-    columns: list[Column] = Field(
-        default_factory=list,
-        description="Metadados das colunas do dataset",
     )
 
     @property

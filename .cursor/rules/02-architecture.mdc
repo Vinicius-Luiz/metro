@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Arquitetura
 
-Conceitos principais: Task, Table, Column, Source Endpoint, Target Endpoint, Query Repository, Replication Strategy, Watermark Provider, Secret Provider, Polars DataFrame, Parquet.
+Conceitos principais: Task, Table, Source Endpoint, Target Endpoint, Query Repository, Replication Strategy, Watermark Provider, Secret Provider, Polars DataFrame, Parquet.
 
 ```text
 Replication

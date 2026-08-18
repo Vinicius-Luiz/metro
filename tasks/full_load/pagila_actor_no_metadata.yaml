@@ -1,18 +1,19 @@
 table:
   schema_name: public
-  name: posts
+  name: actor
   target_schema_name: raw
-  target_name: stackoverflow_posts
+  target_name: pagila_actor_no_metadata
 
 source:
   type: postgresql
-  runtime: stackoverflow_postgres_database
-  chunk_size: 50000
+  runtime: pagila_postgres_database
 
 target:
   type: local
   runtime: development_storage
-  chunk_size: 200000
 
 replication:
   mode: full_load
+
+metadata:
+  enabled: false

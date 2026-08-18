@@ -1,7 +1,7 @@
 """Contratos e entidades do domínio core do METRO."""
 
-from metro.core.column import Column
 from metro.core.endpoint import Endpoint
+from metro.core.metadata import MetadataConfig, MetadataContext
 from metro.core.table import Table
 from metro.core.task import (
     ReplicationConfig,
@@ -12,8 +12,9 @@ from metro.core.task import (
 )
 
 __all__ = [
-    "Column",
     "Endpoint",
+    "MetadataConfig",
+    "MetadataContext",
     "ReplicationConfig",
     "SourceConfig",
     "Table",

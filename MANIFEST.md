@@ -110,11 +110,11 @@ Da mesma forma, diferenças entre modelos SQL e NoSQL não serão artificialment
 
 Uma fonte NoSQL, por exemplo, poderá utilizar seu próprio mecanismo de consulta para transformar ou explodir documentos antes que os dados sejam entregues ao METRO.
 
-# Table e Column
+# Table
 
-Apesar de o METRO suportar fontes NoSQL, os conceitos de `Table` e `Column` serão mantidos como parte do domínio.
+Apesar de o METRO suportar fontes NoSQL, o conceito de `Table` será mantido como parte do domínio.
 
-Eles representam principalmente **identidade e metadados do dataset**, e não a representação física de cada registro.
+Ele representa principalmente **identidade e metadados do dataset**, e não a representação física de cada registro. Metadados de colunas ficam a cargo do Source Endpoint (ex.: `information_schema` em fontes SQL).
 
 ```text
 Table
@@ -122,11 +122,7 @@ Table
 ├── schema
 ├── name
 ├── target_schema_name
-├── target_name
-└── columns
-    ├── Column
-    ├── Column
-    └── ...
+└── target_name
 ```
 
 No caso de uma fonte NoSQL, a `Table` pode representar logicamente uma Collection, enquanto o Source Endpoint permanece responsável pelas particularidades da fonte.
@@ -603,8 +599,6 @@ metro/
 │
 ├── parquet/
 │
-├── filters/
-├── transformations/
 ├── logging/
 └── cli/
 ```
@@ -673,7 +667,6 @@ O METRO será desenvolvido seguindo alguns princípios:
 - [x] Definição dos contratos do domínio
 - [x] `Task`
 - [x] `Table`
-- [x] `Column`
 - [x] `SourceEndpoint`
 - [x] `TargetEndpoint`
 - [x] `ReplicationStrategy`

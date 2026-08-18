@@ -8,6 +8,7 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from metro.core.metadata import MetadataConfig
 from metro.core.table import Table
 
 KNOWN_SOURCE_TYPES = frozenset({"postgresql", "sqlserver", "oracle", "mongodb"})
@@ -161,6 +162,7 @@ class Task(BaseModel):
     source: SourceConfig
     target: TargetConfig
     replication: ReplicationConfig
+    metadata: MetadataConfig = Field(default_factory=MetadataConfig)
 
     def validate(self) -> Task:
         """Valida o contrato e retorna a própria instância.

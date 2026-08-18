@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 
+from metro.core.metadata import MetadataContext
 from metro.core.table import Table
 from metro.replication.base import ReplicationStrategy
 from metro.replication.writer import write_batched, write_part, write_partitioned
@@ -20,6 +21,7 @@ class FullLoadStrategy(ReplicationStrategy):
         self,
         reference_column: str | None = None,
         granularity: str | None = None,
+        metadata_context: MetadataContext | None = None,
     ) -> None:
         super().__init__(
             mode="full_load",
@@ -28,6 +30,7 @@ class FullLoadStrategy(ReplicationStrategy):
         )
         self._reference_column = reference_column
         self._granularity = granularity
+        self._metadata_context = metadata_context
 
     def execute(
         self,
@@ -79,6 +82,7 @@ class FullLoadStrategy(ReplicationStrategy):
             reference_column=self._reference_column,
             granularity=self._granularity,
             allowed_partitions=None,
+            metadata_context=self._metadata_context,
         )
         logger.info(
             "Full Load particionado concluído (table=%s)",
@@ -108,7 +112,13 @@ class FullLoadStrategy(ReplicationStrategy):
             {name: str(dtype) for name, dtype in dataframe.schema.items()},
         )
 
-        write_part(target, staging_path, 1, dataframe)
+        write_part(
+            target,
+            staging_path,
+            1,
+            dataframe,
+            metadata_context=self._metadata_context,
+        )
         logger.info(
             "Full Load concluído (table=%s, rows=%s)",
             table.qualified_name,
@@ -144,6 +154,7 @@ class FullLoadStrategy(ReplicationStrategy):
             target=target,
             staging_path=staging_path,
             track_max=None,
+            metadata_context=self._metadata_context,
         )
 
         logger.info(

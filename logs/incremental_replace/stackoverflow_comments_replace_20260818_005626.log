@@ -1,0 +1,89 @@
+2026-08-18 00:56:26,865 INFO [metro.cli.main] Arquivo de log: C:\Users\Vinicius Luiz\Desktop\Scripts\metro\logs\incremental_replace\stackoverflow_comments_replace_20260818_005626.log
+2026-08-18 00:56:26,865 INFO [metro.cli.main] Carregando task: tasks\incremental_replace\stackoverflow_comments_replace.yaml
+2026-08-18 00:56:26,868 INFO [metro.cli.main] Metadados habilitados (source=public.comments, timestamp=2026-08-18T00:56:26)
+2026-08-18 00:56:26,869 INFO [metro.cli.main] Iniciando replicação (table=public.comments, mode=incremental, source=postgresql, target=local)
+2026-08-18 00:56:26,869 INFO [metro.sources.sql.postgresql] Conectando ao PostgreSQL (runtime=stackoverflow_postgres_database)
+2026-08-18 00:56:26,982 INFO [metro.targets.local] LocalTarget pronto (runtime=development_storage, base_path=local)
+2026-08-18 00:56:26,982 INFO [metro.replication.incremental.replace.partition] Iniciando Replace/Partition (table=public.comments, path=raw/stackoverflow_comments, column=creationdate, granularity=year, lookback_periods=19, cutoff=2008-01-01, partitions=['year=2008', 'year=2009', 'year=2010', 'year=2011', 'year=2012', 'year=2013', 'year=2014', 'year=2015', 'year=2016', 'year=2017', 'year=2018', 'year=2019', 'year=2020', 'year=2021', 'year=2022', 'year=2023', 'year=2024', 'year=2025', 'year=2026'])
+2026-08-18 00:56:26,983 INFO [metro.sources.sql.postgresql] Lower bound aplicado (runtime=stackoverflow_postgres_database, column=creationdate, min_value=2008-01-01, inclusive=True)
+2026-08-18 00:56:26,983 INFO [metro.targets.local] Staging iniciado: local\raw\stackoverflow_comments\_tmp
+2026-08-18 00:56:26,987 INFO [metro.sources.sql.postgresql] Query padrão montada para public.comments (8 colunas)
+2026-08-18 00:56:26,987 INFO [metro.sources.sql.postgresql] Lendo PostgreSQL em batches (runtime=stackoverflow_postgres_database, chunk_size=50000)
+2026-08-18 00:56:28,803 INFO [metro.replication.writer] Materializando parte 1 (path=raw/stackoverflow_comments/_tmp/year=2009/part_0001.parquet, rows=200000)
+2026-08-18 00:56:28,803 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2009\part_0001.parquet
+2026-08-18 00:56:28,953 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=353.0 | memory_after_mb=353.0 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:29,758 INFO [metro.replication.writer] Materializando parte 2 (path=raw/stackoverflow_comments/_tmp/year=2009/part_0002.parquet, rows=200000)
+2026-08-18 00:56:29,758 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2009\part_0002.parquet
+2026-08-18 00:56:29,924 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=450.0 | memory_after_mb=450.0 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:30,882 INFO [metro.replication.writer] Materializando parte 3 (path=raw/stackoverflow_comments/_tmp/year=2009/part_0003.parquet, rows=200000)
+2026-08-18 00:56:30,883 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2009\part_0003.parquet
+2026-08-18 00:56:31,051 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=526.7 | memory_after_mb=526.7 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:31,722 INFO [metro.replication.writer] Materializando parte 4 (path=raw/stackoverflow_comments/_tmp/year=2009/part_0004.parquet, rows=200000)
+2026-08-18 00:56:31,723 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2009\part_0004.parquet
+2026-08-18 00:56:31,892 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=588.0 | memory_after_mb=588.0 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:32,585 INFO [metro.replication.writer] Materializando parte 5 (path=raw/stackoverflow_comments/_tmp/year=2009/part_0005.parquet, rows=200000)
+2026-08-18 00:56:32,586 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2009\part_0005.parquet
+2026-08-18 00:56:32,798 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=613.0 | memory_after_mb=613.0 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:33,658 INFO [metro.replication.writer] Materializando parte 1 (path=raw/stackoverflow_comments/_tmp/year=2010/part_0001.parquet, rows=200000)
+2026-08-18 00:56:33,658 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2010\part_0001.parquet
+2026-08-18 00:56:33,823 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=679.7 | memory_after_mb=679.7 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:34,498 INFO [metro.replication.writer] Materializando parte 2 (path=raw/stackoverflow_comments/_tmp/year=2010/part_0002.parquet, rows=200000)
+2026-08-18 00:56:34,499 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2010\part_0002.parquet
+2026-08-18 00:56:34,675 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=625.8 | memory_after_mb=625.8 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:35,353 INFO [metro.replication.writer] Materializando parte 3 (path=raw/stackoverflow_comments/_tmp/year=2010/part_0003.parquet, rows=200000)
+2026-08-18 00:56:35,354 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2010\part_0003.parquet
+2026-08-18 00:56:35,519 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=695.9 | memory_after_mb=695.9 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:36,223 INFO [metro.replication.writer] Materializando parte 4 (path=raw/stackoverflow_comments/_tmp/year=2010/part_0004.parquet, rows=200000)
+2026-08-18 00:56:36,223 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2010\part_0004.parquet
+2026-08-18 00:56:36,388 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=705.0 | memory_after_mb=705.0 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:37,111 INFO [metro.replication.writer] Materializando parte 5 (path=raw/stackoverflow_comments/_tmp/year=2010/part_0005.parquet, rows=200000)
+2026-08-18 00:56:37,111 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2010\part_0005.parquet
+2026-08-18 00:56:37,290 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=711.6 | memory_after_mb=711.6 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:38,132 INFO [metro.replication.writer] Materializando parte 6 (path=raw/stackoverflow_comments/_tmp/year=2010/part_0006.parquet, rows=200000)
+2026-08-18 00:56:38,132 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2010\part_0006.parquet
+2026-08-18 00:56:38,303 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=711.5 | memory_after_mb=711.5 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:39,023 INFO [metro.replication.writer] Materializando parte 7 (path=raw/stackoverflow_comments/_tmp/year=2010/part_0007.parquet, rows=200000)
+2026-08-18 00:56:39,024 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2010\part_0007.parquet
+2026-08-18 00:56:39,210 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=728.7 | memory_after_mb=728.7 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:39,954 INFO [metro.replication.writer] Materializando parte 8 (path=raw/stackoverflow_comments/_tmp/year=2010/part_0008.parquet, rows=200000)
+2026-08-18 00:56:39,954 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2010\part_0008.parquet
+2026-08-18 00:56:40,133 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=733.0 | memory_after_mb=733.0 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:40,805 INFO [metro.replication.writer] Materializando parte 9 (path=raw/stackoverflow_comments/_tmp/year=2010/part_0009.parquet, rows=200000)
+2026-08-18 00:56:40,805 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2010\part_0009.parquet
+2026-08-18 00:56:40,975 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=679.5 | memory_after_mb=679.5 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:41,636 INFO [metro.replication.writer] Materializando parte 10 (path=raw/stackoverflow_comments/_tmp/year=2010/part_0010.parquet, rows=200000)
+2026-08-18 00:56:41,637 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2010\part_0010.parquet
+2026-08-18 00:56:41,794 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=750.9 | memory_after_mb=750.9 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-18 00:56:42,347 INFO [metro.replication.writer] Materializando parte 1 (path=raw/stackoverflow_comments/_tmp/year=2008/part_0001.parquet, rows=117657)
+2026-08-18 00:56:42,348 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2008\part_0001.parquet
+2026-08-18 00:56:42,484 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=655.6 | memory_after_mb=648.6 | freed_mb=7.0 | freed_percent=1.1 | collected=0
+2026-08-18 00:56:42,485 INFO [metro.replication.writer] Materializando parte 6 (path=raw/stackoverflow_comments/_tmp/year=2009/part_0006.parquet, rows=68296)
+2026-08-18 00:56:42,486 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2009\part_0006.parquet
+2026-08-18 00:56:42,591 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=664.3 | memory_after_mb=663.3 | freed_mb=1.0 | freed_percent=0.2 | collected=0
+2026-08-18 00:56:42,592 INFO [metro.replication.writer] Materializando parte 11 (path=raw/stackoverflow_comments/_tmp/year=2010/part_0011.parquet, rows=167540)
+2026-08-18 00:56:42,593 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_comments\_tmp\year=2010\part_0011.parquet
+2026-08-18 00:56:42,759 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=684.7 | memory_after_mb=681.7 | freed_mb=3.0 | freed_percent=0.4 | collected=0
+2026-08-18 00:56:42,760 INFO [metro.replication.writer] Materialização particionada concluída (rows=3353493, files=18, read_batches=68, partitions_written=3, tracked_max=N/A)
+2026-08-18 00:56:42,765 INFO [metro.targets.local] Partição promovida: local\raw\stackoverflow_comments\year=2008
+2026-08-18 00:56:42,769 INFO [metro.targets.local] Partição promovida: local\raw\stackoverflow_comments\year=2009
+2026-08-18 00:56:42,772 INFO [metro.targets.local] Partição promovida: local\raw\stackoverflow_comments\year=2010
+2026-08-18 00:56:42,772 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2011
+2026-08-18 00:56:42,772 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2012
+2026-08-18 00:56:42,773 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2013
+2026-08-18 00:56:42,773 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2014
+2026-08-18 00:56:42,773 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2015
+2026-08-18 00:56:42,773 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2016
+2026-08-18 00:56:42,774 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2017
+2026-08-18 00:56:42,774 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2018
+2026-08-18 00:56:42,774 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2019
+2026-08-18 00:56:42,774 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2020
+2026-08-18 00:56:42,775 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2021
+2026-08-18 00:56:42,775 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2022
+2026-08-18 00:56:42,775 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2023
+2026-08-18 00:56:42,776 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2024
+2026-08-18 00:56:42,776 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2025
+2026-08-18 00:56:42,777 INFO [metro.targets.local] Partição removida (sem dados no staging): local\raw\stackoverflow_comments\year=2026
+2026-08-18 00:56:42,777 INFO [metro.targets.local] Staging commitado (dataset=raw/stackoverflow_comments)
+2026-08-18 00:56:42,777 INFO [metro.replication.incremental.replace.partition] Replace/Partition concluído (table=public.comments, partitions=19)
+2026-08-18 00:56:42,777 INFO [metro.sources.sql.postgresql] Conexão PostgreSQL encerrada (runtime=stackoverflow_postgres_database)
+2026-08-18 00:56:42,778 INFO [metro.cli.main] Replicação concluída (table=public.comments)

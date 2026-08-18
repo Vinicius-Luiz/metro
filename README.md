@@ -129,19 +129,19 @@ metro run tasks/full_load/pagila_actor.yaml --secret-provider local --log-file l
 
 
 
-## Exemplos de task
+## Tasks de exemplo
+
+YAMLs prontos em `tasks/`. Abra o arquivo correspondente para ver o contrato completo.
 
 
+| Task | Modo |
+| ---- | ---- |
+| `tasks/full_load/pagila_actor.yaml` | Full Load (query automática) |
+| `tasks/full_load/pagila_film_full_partition.yaml` | Full Load particionado |
+| `tasks/incremental_replace/pagila_film_replace.yaml` | Incremental Replace |
+| `tasks/incremental_append/stackoverflow_posts_append.yaml` | Incremental Append |
 
-### Com `query_path` — `tasks/full_load/pagila_film_full_partition.yaml`
-
-Usa a query em `.metro/queries/film.sql` (exemplo particionado abaixo também usa `query_path`).
-
-### Sem `query_path` — `tasks/full_load/pagila_actor.yaml`
-
-O Source monta automaticamente:
-
-`SELECT "col1", "col2", ... FROM "schema"."table"`
+Estrutura mínima de um contrato:
 
 ```yaml
 table:
@@ -153,172 +153,26 @@ table:
 source:
   type: postgresql
   runtime: pagila_postgres_database
+  # query_path: film.sql   # opcional; sem isso, o Source monta SELECT * FROM schema.table
 
 target:
   type: local
   runtime: development_storage
 
 replication:
-  mode: full_load
+  mode: full_load          # full_load | incremental
+  # partition:             # opcional (Full Load e Append)
+  #   type: year
+  #   reference_column: last_update
+  # strategy:              # obrigatório em incremental
+  #   type: replace       # replace | append
+  #   reference_column: last_update
+  #   lookback_periods: 5 # replace
+  #   partition:           # obrigatório em replace
+  #     type: year
 ```
 
-
-
-### Full Load particionado — `tasks/full_load/pagila_film_full_partition.yaml`
-
-Grava o dataset inteiro no layout Hive, compatível com um Replace posterior
-na mesma tabela. Use a **mesma** `reference_column` e granularidade no Replace.
-
-```yaml
-table:
-  schema_name: public
-  name: film
-  target_schema_name: raw
-  target_name: pagila_film
-
-source:
-  type: postgresql
-  runtime: pagila_postgres_database
-  query_path: film.sql
-
-target:
-  type: local
-  runtime: development_storage
-
-replication:
-  mode: full_load
-  partition:
-    type: year
-    reference_column: last_update
-```
-
-
-
-### Incremental Replace / Partition — `tasks/incremental_replace/pagila_film_replace.yaml`
-
-Reconstrói as últimas N partições (Hive) pela coluna de data. A escrita
-ocorre em `dataset/_tmp/` e só é promovida ao final (atomicidade).
-
-Fluxo típico: Full Load particionado → Replace periódico (mesma coluna/granularidade).
-
-```yaml
-table:
-  schema_name: public
-  name: film
-  target_schema_name: raw
-  target_name: pagila_film
-
-source:
-  type: postgresql
-  runtime: pagila_postgres_database
-  query_path: film.sql
-
-target:
-  type: local
-  runtime: development_storage
-
-replication:
-  mode: incremental
-  strategy:
-    type: replace
-    reference_column: last_update
-    lookback_periods: 5
-    partition:
-      type: year
-```
-
-Layout de saída (exemplo com `partition.type: year`):
-
-```text
-local/raw/pagila_film/
-├── year=2022/
-│   └── part_0001.parquet
-├── year=2023/
-├── year=2024/
-├── year=2025/
-└── year=2026/
-```
-
----
-
-
-
-### Incremental Append / MaxValue — `tasks/incremental_append/stackoverflow_posts_append.yaml`
-
-Append incremental pela coluna de referência, com estado no Watermark API.
-
-Pré-requisitos:
-
-1. Database/schema criados: `psql -U postgres -h localhost -p 5432 -f .watermark/setup_watermark.sql`
-2. API no ar:
-
-```powershell
-cd .watermark
-..\venv\Scripts\pip.exe install -r requirements.txt
-..\venv\Scripts\uvicorn.exe app:app --reload --port 8000
-```
-
-3. Executar a task:
-
-```powershell
-metro run tasks/incremental_append/stackoverflow_posts_append.yaml --secret-provider local --watermark-api-url http://localhost:8000
-```
-
-Roteiro manual com INSERT/UPDATE/DELETE: `.watermark/tests/passo_a_passo.txt`
-
-```yaml
-table:
-  schema_name: public
-  name: posts
-  target_schema_name: raw
-  target_name: stackoverflow_posts_append
-
-source:
-  type: postgresql
-  runtime: stackoverflow_postgres_database
-  chunk_size: 50000
-
-target:
-  type: local
-  runtime: development_storage
-  chunk_size: 200000
-
-replication:
-  mode: incremental
-  strategy:
-    type: append
-    reference_column: creationdate
-```
-
-Comportamento:
-
-- **Primeira execução** (sem watermark): processa o dataset inteiro e cria o watermark
-- **Execuções seguintes**: filtra `reference_column > watermark` e acrescenta novos Parquets
-- Watermark só é atualizado **após** o commit no Target
-
-**Append com particionamento Hive (opcional):**
-
-```yaml
-replication:
-  mode: incremental
-  strategy:
-    type: append
-    reference_column: last_update
-    partition:
-      type: year  # ou month, day
-      reference_column: last_update  # coluna de partição (pode ser diferente)
-```
-
-Layout de saída particionado:
-
-```text
-local/raw/test_watermark_append_partitioned/
-├── year=2026/
-│   ├── part_0001.parquet
-│   └── part_0002.parquet
-└── year=2027/
-    └── part_0001.parquet
-```
+**Append** exige a Watermark API no ar — setup em [`.watermark/README.md`](.watermark/README.md).
 
 ---
 
@@ -373,7 +227,7 @@ A lógica de layout Hive e de materialização é compartilhada entre as strateg
 
 - **Source Endpoint** — obtém os dados
 - **Target Endpoint** — materializa os dados
-- **Table / Column** — identidade e metadados do dataset
+- **Table** — identidade e metadados do dataset
 - **Replication Strategy** — Full Load / Incremental Append / Incremental Replace
 - **Query Repository** — resolve `query_path`
 - **Secret Provider** — resolve `runtime`

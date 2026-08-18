@@ -8,6 +8,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from metro.core.metadata import MetadataContext
 from metro.core.task import Task
 from metro.queries.local import LocalQueryRepository
 from metro.replication.full_load.strategy import FullLoadStrategy
@@ -24,6 +25,7 @@ from metro.watermark.client import WatermarkClient
 logger = logging.getLogger(__name__)
 
 DEFAULT_LOG_DIR = Path("logs")
+LOG_SUBDIRS = {"full_load", "incremental_replace", "incremental_append"}
 LOG_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
 
 
@@ -62,9 +64,18 @@ def run_task(
     watermark_api_url: str | None = None,
 ) -> None:
     """Executa exatamente uma task (uma tabela) por invocação."""
+    execution_timestamp = datetime.now()
     logger.info("Carregando task: %s", task_path)
     task = Task.from_yaml(task_path)
     _log_task_parameters(task, secret_provider_name)
+
+    metadata_context = _build_metadata_context(task, execution_timestamp)
+    if metadata_context is not None:
+        logger.info(
+            "Metadados habilitados (source=%s, timestamp=%s)",
+            task.table.qualified_name,
+            execution_timestamp.replace(microsecond=0).isoformat(timespec="seconds"),
+        )
 
     secret_provider = _build_secret_provider(secret_provider_name)
     query_repository = LocalQueryRepository()
@@ -83,7 +94,7 @@ def run_task(
 
     source = _build_source(task, secret_provider, query_repository)
     target = _build_target(task, secret_provider)
-    strategy = _build_strategy(task, watermark_client)
+    strategy = _build_strategy(task, watermark_client, metadata_context)
 
     logger.info(
         "Iniciando replicação (table=%s, mode=%s, source=%s, target=%s)",
@@ -105,8 +116,7 @@ def _log_task_parameters(task: Task, secret_provider_name: str) -> None:
     logger.debug(
         "Parâmetros METRO | secret_provider=%s | table.schema_name=%s | "
         "table.name=%s | table.qualified_name=%s | table.target_schema_name=%s | "
-        "table.target_name=%s | table.target_dataset_path=%s | "
-        "table.columns_declared=%s",
+        "table.target_name=%s | table.target_dataset_path=%s",
         secret_provider_name,
         task.table.schema_name,
         task.table.name,
@@ -114,14 +124,7 @@ def _log_task_parameters(task: Task, secret_provider_name: str) -> None:
         task.table.target_schema_name,
         task.table.target_name,
         task.table.target_dataset_path,
-        len(task.table.columns),
     )
-    if task.table.columns:
-        declared = [
-            f"{col.name}:{col.data_type}:nullable={col.nullable}"
-            for col in task.table.columns
-        ]
-        logger.debug("Colunas declaradas no YAML: %s", declared)
 
     logger.debug(
         "Parâmetros Source | type=%s | runtime=%s | query_path=%s | chunk_size=%s",
@@ -153,6 +156,11 @@ def _log_task_parameters(task: Task, secret_provider_name: str) -> None:
         None
         if task.replication.partition is None
         else task.replication.partition.model_dump(),
+    )
+    logger.debug(
+        "Parâmetros Metadata | enabled=%s | config=%s",
+        task.metadata.enabled,
+        task.metadata.model_dump(),
     )
 
 
@@ -194,7 +202,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Caminho do arquivo de log. "
-            "Padrão: logs/<task>_<timestamp>.log"
+            "Padrão: logs/<modo>/<task>_<timestamp>.log"
         ),
     )
     return parser
@@ -230,9 +238,11 @@ def _configure_logging(
 
 
 def _default_log_path(task_path: Path) -> Path:
-    """Gera o path padrão `logs/<task>_<timestamp>.log`."""
+    """Gera o path padrão `logs/<modo>/<task>_<timestamp>.log`."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return DEFAULT_LOG_DIR / f"{task_path.stem}_{timestamp}.log"
+    subdir = task_path.parent.name
+    base = DEFAULT_LOG_DIR / subdir if subdir in LOG_SUBDIRS else DEFAULT_LOG_DIR
+    return base / f"{task_path.stem}_{timestamp}.log"
 
 
 def _build_secret_provider(name: str) -> SecretProvider:
@@ -273,9 +283,24 @@ def _build_target(task: Task, secret_provider: SecretProvider) -> TargetEndpoint
     raise ValueError(f"Target type não suportado: {target_type}")
 
 
+def _build_metadata_context(
+    task: Task,
+    execution_timestamp: datetime,
+) -> MetadataContext | None:
+    """Monta o contexto de metadados quando habilitado na task."""
+    if not task.metadata.is_active():
+        return None
+    return MetadataContext(
+        config=task.metadata,
+        source_table_qualified_name=task.table.qualified_name,
+        execution_timestamp=execution_timestamp,
+    )
+
+
 def _build_strategy(
     task: Task,
     watermark_client: WatermarkClient | None = None,
+    metadata_context: MetadataContext | None = None,
 ):
     """Instancia a Replication Strategy conforme `replication` da task."""
     if task.replication.mode == "full_load":
@@ -289,8 +314,9 @@ def _build_strategy(
             return FullLoadStrategy(
                 reference_column=partition.reference_column,
                 granularity=partition.type,
+                metadata_context=metadata_context,
             )
-        return FullLoadStrategy()
+        return FullLoadStrategy(metadata_context=metadata_context)
     if task.replication.mode == "incremental":
         strategy = task.replication.strategy
         if strategy is None:
@@ -311,6 +337,7 @@ def _build_strategy(
                 aggregation=strategy.aggregation or "MAX",
                 partition_type=partition_type,
                 partition_column=partition_column,
+                metadata_context=metadata_context,
             )
         if strategy.type == "replace":
             if strategy.partition is None or strategy.lookback_periods is None:
@@ -322,6 +349,7 @@ def _build_strategy(
                 reference_column=strategy.reference_column,
                 granularity=strategy.partition.type,
                 lookback_periods=strategy.lookback_periods,
+                metadata_context=metadata_context,
             )
         raise ValueError(
             f"Replication strategy type não suportado ainda: {strategy.type}"

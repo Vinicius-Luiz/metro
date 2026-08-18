@@ -9,6 +9,7 @@ from typing import Any
 import polars as pl
 import psutil
 
+from metro.core.metadata import MetadataContext, add_metadata_columns
 from metro.replication.partitioning import split_by_partition
 from metro.sources.base import SourceEndpoint
 from metro.targets.base import TargetEndpoint
@@ -23,16 +24,18 @@ def write_part(
     path_prefix: str,
     file_index: int,
     dataframe: pl.DataFrame,
+    metadata_context: MetadataContext | None = None,
 ) -> None:
     """Materializa um arquivo `part_NNNN.parquet` sob o path informado."""
+    enriched = add_metadata_columns(dataframe, metadata_context)
     part_path = f"{path_prefix}/part_{file_index:04d}.parquet"
     logger.info(
         "Materializando parte %s (path=%s, rows=%s)",
         file_index,
         part_path,
-        dataframe.height,
+        enriched.height,
     )
-    target.write(dataframe, part_path)
+    target.write(enriched, part_path)
 
 
 def write_batched(
@@ -40,6 +43,7 @@ def write_batched(
     target: TargetEndpoint,
     staging_path: str,
     track_max: str | None = None,
+    metadata_context: MetadataContext | None = None,
 ) -> tuple[int, Any]:
     """Materializa batches em arquivos Parquet planos sob staging_path.
 
@@ -80,7 +84,13 @@ def write_batched(
 
         if write_size is None:
             file_index += 1
-            write_part(target, staging_path, file_index, dataframe)
+            write_part(
+                target,
+                staging_path,
+                file_index,
+                dataframe,
+                metadata_context=metadata_context,
+            )
             total_rows += dataframe.height
             return
 
@@ -88,7 +98,13 @@ def write_batched(
             chunk = dataframe.slice(0, write_size)
             dataframe = dataframe.slice(write_size)
             file_index += 1
-            write_part(target, staging_path, file_index, chunk)
+            write_part(
+                target,
+                staging_path,
+                file_index,
+                chunk,
+                metadata_context=metadata_context,
+            )
             total_rows += chunk.height
             del chunk
             collect_garbage(process)
@@ -97,7 +113,13 @@ def write_batched(
             return
         if force:
             file_index += 1
-            write_part(target, staging_path, file_index, dataframe)
+            write_part(
+                target,
+                staging_path,
+                file_index,
+                dataframe,
+                metadata_context=metadata_context,
+            )
             total_rows += dataframe.height
             del dataframe
             collect_garbage(process)
@@ -155,6 +177,7 @@ def write_partitioned(
     granularity: str,
     allowed_partitions: frozenset[str] | None = None,
     track_max: str | None = None,
+    metadata_context: MetadataContext | None = None,
 ) -> tuple[int, Any]:
     """Materializa batches particionados em Hive sob staging_path.
 
@@ -199,6 +222,7 @@ def write_partitioned(
                 path_prefix,
                 file_index[partition_path],
                 dataframe,
+                metadata_context=metadata_context,
             )
             total_rows += dataframe.height
             return
@@ -212,6 +236,7 @@ def write_partitioned(
                 path_prefix,
                 file_index[partition_path],
                 chunk,
+                metadata_context=metadata_context,
             )
             total_rows += chunk.height
             del chunk
@@ -226,6 +251,7 @@ def write_partitioned(
                 path_prefix,
                 file_index[partition_path],
                 dataframe,
+                metadata_context=metadata_context,
             )
             total_rows += dataframe.height
             del dataframe

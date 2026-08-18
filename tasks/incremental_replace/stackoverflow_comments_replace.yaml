@@ -1,8 +1,8 @@
 table:
   schema_name: public
-  name: posts
+  name: comments
   target_schema_name: raw
-  target_name: stackoverflow_posts
+  target_name: stackoverflow_comments
 
 source:
   type: postgresql
@@ -15,4 +15,10 @@ target:
   chunk_size: 200000
 
 replication:
-  mode: full_load
+  mode: incremental
+  strategy:
+    type: replace
+    reference_column: creationdate
+    lookback_periods: 19
+    partition:
+      type: year
