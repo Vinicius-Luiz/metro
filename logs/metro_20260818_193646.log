@@ -1,0 +1,9 @@
+2026-08-18 19:36:46,113 INFO [metro.cli.main] Arquivo de log: C:\Users\Vinicius Luiz\Desktop\Scripts\metro\logs\metro_20260818_193646.log
+2026-08-18 19:36:46,114 INFO [metro.cli.main] Construindo task via argumentos CLI
+2026-08-18 19:36:46,114 ERROR [metro.cli.main] Falha ao executar a task
+Traceback (most recent call last):
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\metro\cli\main.py", line 67, in main
+    task = _build_task_from_cli(args)
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\metro\cli\main.py", line 480, in _build_task_from_cli
+    raise TaskValidationError(
+metro.core.task.TaskValidationError: Campos obrigatórios faltando: --table.name, --table.target-schema, --table.target-name, --source.type, --source.runtime, --target.type, --target.runtime, --replication.mode

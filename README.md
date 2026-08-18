@@ -2,30 +2,27 @@
 
 ## Motor de Extração, Transferência e Replicação de Objetos
 
-O **METRO** é um motor de replicação de dados em Python para **Full Load** e **Incremental Load** de fontes **SQL/NoSQL** para storages (**Local**, futuramente **S3**), com **Parquet** como formato de persistência.
+Este README explica como instalar, configurar e executar o METRO. Arquitetura, domínio e roadmap estão em [MANIFEST.md](MANIFEST.md).
 
-Não utiliza CDC, replication slots ou mensageria. Cada execução processa **uma tabela** (modelo alinhado a container/instância única).
+O **METRO** é um motor de replicação em Python para **Full Load** e **Incremental Load** de fontes **SQL/NoSQL** para storages (**Local**, futuramente **S3**), com **Parquet** como formato de persistência.
+
+Não utiliza CDC, replication slots ou mensageria. Cada execução processa **uma tabela**.
 
 ---
 
 ## O que já funciona
 
-- Full Load: **PostgreSQL → Local** (plano ou particionado Hive)
-- Incremental Replace / Partition: **PostgreSQL → Local**
-- Incremental Append / MaxValue: **PostgreSQL → Local** (via Watermark API)
-- Escrita atômica via pasta `_tmp` (promove só ao final)
-- CLI: `metro run`
+- Full Load: PostgreSQL → Local (plano ou particionado Hive)
+- Incremental Replace / Partition: PostgreSQL → Local
+- Incremental Append / MaxValue: PostgreSQL → Local (via Watermark API)
+- Escrita atômica via pasta `_tmp`
+- CLI `metro run` (YAML ou flags)
 - Secrets locais via `.env`
-- Queries externas em `.metro/queries/`
-- Query padrão automática quando `query_path` não é informado
+- Queries em `.metro/queries/` — ou query padrão (`SELECT *`) se `query_path` não for informado
 - Logs no console e em `logs/`
-- Watermark API local (`.watermark/`) sobre PostgreSQL externo
-
-Detalhes de arquitetura e roadmap: [MANIFEST.md](MANIFEST.md).
+- Watermark API local em `.watermark/`
 
 ---
-
-
 
 ## Pré-requisitos
 
@@ -33,8 +30,6 @@ Detalhes de arquitetura e roadmap: [MANIFEST.md](MANIFEST.md).
 - PostgreSQL acessível (para os exemplos Pagila)
 
 ---
-
-
 
 ## Instalação
 
@@ -45,59 +40,41 @@ python -m venv venv
 pip install -e .
 ```
 
-Ou:
-
-```powershell
-pip install -r requirements.txt
-```
+Ou: `pip install -r requirements.txt`
 
 ---
-
-
 
 ## Configuração (`.env`)
 
-Crie um `.env` na raiz (não versionado). Exemplo:
+Crie um `.env` na raiz (não versionado). Modelo em `example.env`:
 
 ```env
-# Connection string PostgreSQL (runtime = pagila_postgres_database)
 METRO_PAGILA_POSTGRES_DATABASE="postgresql://user:password@localhost:5432/pagila"
-
-# Target Local (runtime = development_storage)
 METRO_DEVELOPMENT_STORAGE_BASE_PATH="./local"
-
-# Watermark API (infraestrutura externa)
 METRO_WATERMARK_POSTGRES_DATABASE="postgresql://user:password@localhost:5432/metro_watermark"
 ```
 
-Convenção: `runtime` do YAML vira `METRO_<RUNTIME_EM_UPPER_SNAKE>`.
+O `runtime` do YAML vira `METRO_<RUNTIME_EM_UPPER_SNAKE>`. Sources de banco usam o padrão `<nome>_<database_type>_database`.
 
-Padrão de nome para Sources de banco: `<nome>_<database_type>_database`.
-
-
-| YAML `runtime`                   | Variável no `.env`                           |
-| -------------------------------- | -------------------------------------------- |
-| `pagila_postgres_database`       | `METRO_PAGILA_POSTGRES_DATABASE`             |
-| `stackoverflow_postgres_database`| `METRO_STACKOVERFLOW_POSTGRES_DATABASE`      |
-| `stackoverflow_sql_server_database` | `METRO_STACKOVERFLOW_SQL_SERVER_DATABASE` |
-| `development_storage`            | `METRO_DEVELOPMENT_STORAGE_BASE_PATH`        |
-| *(API watermark)*                | `METRO_WATERMARK_POSTGRES_DATABASE`          |
-
+| YAML `runtime` | Variável no `.env` |
+| --- | --- |
+| `pagila_postgres_database` | `METRO_PAGILA_POSTGRES_DATABASE` |
+| `stackoverflow_postgres_database` | `METRO_STACKOVERFLOW_POSTGRES_DATABASE` |
+| `development_storage` | `METRO_DEVELOPMENT_STORAGE_BASE_PATH` |
+| *(API watermark)* | `METRO_WATERMARK_POSTGRES_DATABASE` |
 
 ---
 
-
-
 ## Como executar
 
-Ative o venv e rode **uma task por comando** (1 tabela = 1 execução):
+Uma task por comando. O contrato vem de um YAML:
 
 ```powershell
 metro run tasks/full_load/pagila_actor.yaml --secret-provider local
 metro run tasks/full_load/pagila_film_full_partition.yaml --secret-provider local
 ```
 
-Organização das tasks:
+YAMLs de exemplo:
 
 ```text
 tasks/
@@ -106,42 +83,33 @@ tasks/
 └── incremental_append/
 ```
 
+| Task | Modo |
+| --- | --- |
+| `tasks/full_load/pagila_actor.yaml` | Full Load |
+| `tasks/full_load/pagila_film_full_partition.yaml` | Full Load particionado |
+| `tasks/incremental_replace/pagila_film_replace.yaml` | Incremental Replace |
+| `tasks/incremental_append/stackoverflow_posts_append.yaml` | Incremental Append |
 
+**Append** precisa da Watermark API no ar — setup em [`.watermark/README.md`](.watermark/README.md).
 
-### Opções úteis
+Opções úteis:
 
 ```powershell
 metro run tasks/full_load/pagila_actor.yaml --secret-provider local --log-level DEBUG
 metro run tasks/full_load/pagila_actor.yaml --secret-provider local --log-file logs/meu_run.log
 ```
 
-
-| Argumento              | Descrição                                                          |
-| ---------------------- | ------------------------------------------------------------------ |
-| `task`                 | Caminho do YAML (obrigatório; exatamente um)                       |
-| `--secret-provider`    | Provider de secrets (`local` por enquanto)                         |
-| `--watermark-api-url`  | URL da API de watermark (padrão: `http://localhost:8000`)          |
-| `--log-level`          | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`                    |
-| `--log-file`           | Caminho customizado do log (padrão: `logs/<task>_<timestamp>.log`) |
-
+| Argumento | Descrição | Default |
+| --- | --- | --- |
+| `task` | Caminho do YAML | — |
+| `--secret-provider` | Provider de secrets (`local` por enquanto) | `local` |
+| `--watermark-api-url` | URL da API de watermark | `http://localhost:8000` |
+| `--log-level` | Nível de log | `INFO` |
+| `--log-file` | Arquivo de log | `logs/<task>_<timestamp>.log` |
 
 ---
 
-
-
-## Tasks de exemplo
-
-YAMLs prontos em `tasks/`. Abra o arquivo correspondente para ver o contrato completo.
-
-
-| Task | Modo |
-| ---- | ---- |
-| `tasks/full_load/pagila_actor.yaml` | Full Load (query automática) |
-| `tasks/full_load/pagila_film_full_partition.yaml` | Full Load particionado |
-| `tasks/incremental_replace/pagila_film_replace.yaml` | Incremental Replace |
-| `tasks/incremental_append/stackoverflow_posts_append.yaml` | Incremental Append |
-
-Estrutura mínima de um contrato:
+## Contrato YAML
 
 ```yaml
 table:
@@ -153,7 +121,7 @@ table:
 source:
   type: postgresql
   runtime: pagila_postgres_database
-  # query_path: film.sql   # opcional; sem isso, o Source monta SELECT * FROM schema.table
+  # query_path: film.sql   # opcional; sem isso, SELECT * FROM schema.table
 
 target:
   type: local
@@ -161,76 +129,37 @@ target:
 
 replication:
   mode: full_load          # full_load | incremental
-  # partition:             # opcional (Full Load e Append)
-  #   type: year
-  #   reference_column: last_update
-  # strategy:              # obrigatório em incremental
-  #   type: replace       # replace | append
-  #   reference_column: last_update
-  #   lookback_periods: 5 # replace
-  #   partition:           # obrigatório em replace
-  #     type: year
 ```
 
-**Append** exige a Watermark API no ar — setup em [`.watermark/README.md`](.watermark/README.md).
+Incremental **Replace** exige `strategy` com `type: replace`, `reference_column`, `lookback_periods` e `partition`. Incremental **Append** exige `strategy` com `type: append` e `reference_column`. Contratos completos estão em `tasks/`.
 
 ---
 
+## Execução sem YAML
 
+As flags espelham o YAML: ponto (`.`) separa níveis (`--replication.strategy.type`) e hífen (`-`) separa palavras (`--reference-column`). Lista completa: `metro run --help`.
+
+```powershell
+metro run `
+  --table.name actor `
+  --table.target-schema raw `
+  --table.target-name pagila_actor `
+  --source.type postgresql `
+  --source.runtime pagila_postgres_database `
+  --target.type local `
+  --target.runtime development_storage `
+  --replication.mode full_load `
+  --secret-provider local
+```
+
+Se um YAML for informado, as flags de contrato da CLI são ignoradas.
+
+---
 
 ## Saídas
 
-
-| Destino           | Conteúdo                                                                          |
-| ----------------- | --------------------------------------------------------------------------------- |
-| `./local/`        | Parquets gerados (ex.: `raw/pagila_film/year=YYYY/*.parquet`)                     |
-| `./logs/`         | Logs da execução (console + arquivo)                                              |
-| `.metro/queries/` | Arquivos de query referenciados por `query_path`                                  |
-
-
----
-
-
-
-## Fluxo resumido
-
-```text
-YAML (1 tabela)
-  → SecretProvider (.env)
-  → Source (query_path ou query padrão)
-  → Polars DataFrame
-  → Full Load / Incremental Replace / Incremental Append
-  → Parquet (plano ou particionado Hive, via _tmp)
-  → Commit atômico no Target Local (./local)
-  → Watermark API (somente Append)
-```
-
-## Particionamento Hive
-
-Todos os 3 modos suportam particionamento Hive (`year`/`month`/`day`):
-
-- **Full Load**: `replication.partition` (opcional)
-- **Incremental Replace**: `strategy.partition` (obrigatório) + `lookback_periods`
-- **Incremental Append**: `strategy.partition` (opcional)
-
-A lógica de layout Hive e de materialização é compartilhada entre as strategies
-(`metro/replication/partitioning.py` e `metro/replication/writer.py`):
-
-- escrita plana em batches → `write_batched`
-- escrita particionada Hive → `write_partitioned`
-
----
-
-
-
-## Conceitos fundamentais
-
-- **Source Endpoint** — obtém os dados
-- **Target Endpoint** — materializa os dados
-- **Table** — identidade e metadados do dataset
-- **Replication Strategy** — Full Load / Incremental Append / Incremental Replace
-- **Query Repository** — resolve `query_path`
-- **Secret Provider** — resolve `runtime`
-- **Watermark Client** — consome a API externa de watermarks (Append)
-- **Polars / Parquet** — processamento e persistência
-
+| Destino | Conteúdo |
+| --- | --- |
+| `./local/` | Parquets gerados |
+| `./logs/` | Logs da execução |
+| `.metro/queries/` | Queries referenciadas por `query_path` |

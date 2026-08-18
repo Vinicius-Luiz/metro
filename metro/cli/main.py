@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from metro.core.metadata import MetadataContext
-from metro.core.task import Task
+from metro.core.task import Task, TaskValidationError
 from metro.queries.local import LocalQueryRepository
 from metro.replication.full_load.strategy import FullLoadStrategy
 from metro.replication.incremental.append.max_value import AppendMaxValueStrategy
@@ -28,6 +28,17 @@ DEFAULT_LOG_DIR = Path("logs")
 LOG_SUBDIRS = {"full_load", "incremental_replace", "incremental_append"}
 LOG_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
 
+REQUIRED_CLI_FIELDS = {
+    "table_name": "--table.name",
+    "table_target_schema": "--table.target-schema",
+    "table_target_name": "--table.target-name",
+    "source_type": "--source.type",
+    "source_runtime": "--source.runtime",
+    "target_type": "--target.type",
+    "target_runtime": "--target.runtime",
+    "replication_mode": "--replication.mode",
+}
+
 
 def main(argv: list[str] | None = None) -> int:
     """Ponto de entrada da CLI; retorna código de saída do processo."""
@@ -38,17 +49,24 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 1
 
-    task_path = Path(args.task)
+    task_path = Path(args.task) if args.task else None
     log_file = _configure_logging(
         level=args.log_level,
         task_path=task_path,
+        table_name=getattr(args, "table_name", None),
         log_file=Path(args.log_file) if args.log_file else None,
     )
     logger.info("Arquivo de log: %s", log_file)
 
     try:
+        if task_path is not None:
+            logger.info("Carregando task do YAML: %s", task_path)
+            task = Task.from_yaml(task_path)
+        else:
+            logger.info("Construindo task via argumentos CLI")
+            task = _build_task_from_cli(args)
         run_task(
-            task_path=task_path,
+            task=task,
             secret_provider_name=args.secret_provider,
             watermark_api_url=args.watermark_api_url,
         )
@@ -59,14 +77,12 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def run_task(
-    task_path: Path,
+    task: Task,
     secret_provider_name: str,
     watermark_api_url: str | None = None,
 ) -> None:
     """Executa exatamente uma task (uma tabela) por invocação."""
     execution_timestamp = datetime.now()
-    logger.info("Carregando task: %s", task_path)
-    task = Task.from_yaml(task_path)
     _log_task_parameters(task, secret_provider_name)
 
     metadata_context = _build_metadata_context(task, execution_timestamp)
@@ -164,6 +180,32 @@ def _log_task_parameters(task: Task, secret_provider_name: str) -> None:
     )
 
 
+def _cli_dest(flag: str) -> str:
+    """Converte `--a.b.foo-bar` em dest argparse `a_b_foo_bar`."""
+    return flag.lstrip("-").replace("-", "_").replace(".", "_")
+
+
+def _parse_bool(value: str) -> bool:
+    """Interpreta valores booleanos passados via CLI."""
+    normalized = value.strip().lower()
+    if normalized in {"true", "1", "yes"}:
+        return True
+    if normalized in {"false", "0", "no"}:
+        return False
+    raise argparse.ArgumentTypeError(
+        f"valor booleano inválido: '{value}' (use true/false)"
+    )
+
+
+def _add_task_flag(
+    parser: argparse.ArgumentParser,
+    flag: str,
+    **kwargs,
+) -> None:
+    """Registra uma flag hierárquica com dest sem pontos."""
+    parser.add_argument(flag, dest=_cli_dest(flag), **kwargs)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Monta o ArgumentParser da CLI (`metro run …`)."""
     parser = argparse.ArgumentParser(
@@ -178,7 +220,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     run_parser.add_argument(
         "task",
-        help="Caminho do YAML da task (exatamente um arquivo)",
+        nargs="?",
+        help="Caminho do YAML da task (opcional se as flags CLI forem fornecidas)",
     )
     run_parser.add_argument(
         "--secret-provider",
@@ -205,17 +248,265 @@ def _build_parser() -> argparse.ArgumentParser:
             "Padrão: logs/<modo>/<task>_<timestamp>.log"
         ),
     )
+
+    table_group = run_parser.add_argument_group("table")
+    _add_task_flag(table_group, "--table.schema", help="Schema da tabela no source")
+    _add_task_flag(table_group, "--table.name", help="Nome da tabela no source")
+    _add_task_flag(table_group, "--table.target-schema", help="Schema no target")
+    _add_task_flag(table_group, "--table.target-name", help="Nome da tabela no target")
+
+    source_group = run_parser.add_argument_group("source")
+    _add_task_flag(
+        source_group,
+        "--source.type",
+        help="Tipo do source (postgresql, mongodb, etc)",
+    )
+    _add_task_flag(source_group, "--source.runtime", help="Runtime do source")
+    _add_task_flag(
+        source_group,
+        "--source.query-path",
+        help="Caminho da query SQL (opcional)",
+    )
+    _add_task_flag(
+        source_group,
+        "--source.chunk-size",
+        type=int,
+        help="Chunk size do source (opcional)",
+    )
+
+    target_group = run_parser.add_argument_group("target")
+    _add_task_flag(target_group, "--target.type", help="Tipo do target (local, s3)")
+    _add_task_flag(target_group, "--target.runtime", help="Runtime do target")
+    _add_task_flag(
+        target_group,
+        "--target.chunk-size",
+        type=int,
+        help="Chunk size do target (opcional)",
+    )
+
+    replication_group = run_parser.add_argument_group("replication")
+    _add_task_flag(
+        replication_group,
+        "--replication.mode",
+        choices=["full_load", "incremental"],
+        help="Modo de replicação",
+    )
+    _add_task_flag(
+        replication_group,
+        "--replication.partition.type",
+        choices=["year", "month", "day"],
+        help="Tipo de partição para full_load",
+    )
+    _add_task_flag(
+        replication_group,
+        "--replication.partition.reference-column",
+        help="Coluna de referência para partição",
+    )
+    _add_task_flag(
+        replication_group,
+        "--replication.strategy.type",
+        choices=["replace", "append"],
+        help="Tipo de estratégia incremental",
+    )
+    _add_task_flag(
+        replication_group,
+        "--replication.strategy.reference-column",
+        help="Coluna de referência da estratégia incremental",
+    )
+    _add_task_flag(
+        replication_group,
+        "--replication.strategy.lookback-periods",
+        type=int,
+        help="Número de períodos de lookback (apenas replace)",
+    )
+    _add_task_flag(
+        replication_group,
+        "--replication.strategy.aggregation",
+        help="Função de agregação (apenas append, default: MAX)",
+    )
+    _add_task_flag(
+        replication_group,
+        "--replication.strategy.partition.type",
+        choices=["year", "month", "day"],
+        help="Tipo de partição da estratégia",
+    )
+    _add_task_flag(
+        replication_group,
+        "--replication.strategy.partition.reference-column",
+        help="Coluna de referência da partição da estratégia",
+    )
+
+    metadata_group = run_parser.add_argument_group("metadata")
+    _add_task_flag(
+        metadata_group,
+        "--metadata.enabled",
+        type=_parse_bool,
+        help="Habilitar metadata (default: True)",
+    )
+    _add_task_flag(
+        metadata_group,
+        "--metadata.columns.data-ingestao.enabled",
+        type=_parse_bool,
+        help="Habilitar coluna data_ingestao",
+    )
+    _add_task_flag(
+        metadata_group,
+        "--metadata.columns.data-ingestao.column-name",
+        help="Nome customizado para coluna data_ingestao",
+    )
+    _add_task_flag(
+        metadata_group,
+        "--metadata.columns.banco-origem.enabled",
+        type=_parse_bool,
+        help="Habilitar coluna banco_origem",
+    )
+    _add_task_flag(
+        metadata_group,
+        "--metadata.columns.banco-origem.column-name",
+        help="Nome customizado para coluna banco_origem",
+    )
     return parser
+
+
+def _omit_none(payload: dict) -> dict:
+    """Remove chaves com valor None do dicionário."""
+    return {key: value for key, value in payload.items() if value is not None}
+
+
+def _build_nested_dict_from_args(args: argparse.Namespace) -> dict:
+    """Constrói dicionário aninhado a partir de flags hierárquicas."""
+    task_dict: dict = {
+        "table": _omit_none(
+            {
+                "schema_name": args.table_schema,
+                "name": args.table_name,
+                "target_schema_name": args.table_target_schema,
+                "target_name": args.table_target_name,
+            }
+        ),
+        "source": _omit_none(
+            {
+                "type": args.source_type,
+                "runtime": args.source_runtime,
+                "query_path": args.source_query_path,
+                "chunk_size": args.source_chunk_size,
+            }
+        ),
+        "target": _omit_none(
+            {
+                "type": args.target_type,
+                "runtime": args.target_runtime,
+                "chunk_size": args.target_chunk_size,
+            }
+        ),
+    }
+
+    replication: dict = {"mode": args.replication_mode}
+    if (
+        args.replication_partition_type
+        or args.replication_partition_reference_column
+    ):
+        replication["partition"] = _omit_none(
+            {
+                "type": args.replication_partition_type,
+                "reference_column": args.replication_partition_reference_column,
+            }
+        )
+
+    if args.replication_strategy_type:
+        strategy: dict = {
+            "type": args.replication_strategy_type,
+            "reference_column": args.replication_strategy_reference_column,
+        }
+        if args.replication_strategy_lookback_periods is not None:
+            strategy["lookback_periods"] = args.replication_strategy_lookback_periods
+        if args.replication_strategy_aggregation:
+            strategy["aggregation"] = args.replication_strategy_aggregation
+        if (
+            args.replication_strategy_partition_type
+            or args.replication_strategy_partition_reference_column
+        ):
+            strategy["partition"] = _omit_none(
+                {
+                    "type": args.replication_strategy_partition_type,
+                    "reference_column": (
+                        args.replication_strategy_partition_reference_column
+                    ),
+                }
+            )
+        replication["strategy"] = strategy
+
+    task_dict["replication"] = replication
+
+    metadata_dict: dict = {}
+    if args.metadata_enabled is not None:
+        metadata_dict["enabled"] = args.metadata_enabled
+
+    columns_dict: dict = {}
+    data_ingestao = _omit_none(
+        {
+            "enabled": args.metadata_columns_data_ingestao_enabled,
+            "column_name": args.metadata_columns_data_ingestao_column_name,
+        }
+    )
+    if data_ingestao:
+        columns_dict["data_ingestao"] = data_ingestao
+
+    banco_origem = _omit_none(
+        {
+            "enabled": args.metadata_columns_banco_origem_enabled,
+            "column_name": args.metadata_columns_banco_origem_column_name,
+        }
+    )
+    if banco_origem:
+        columns_dict["banco_origem"] = banco_origem
+
+    if columns_dict:
+        metadata_dict["columns"] = columns_dict
+    if metadata_dict:
+        task_dict["metadata"] = metadata_dict
+
+    return task_dict
+
+
+def _build_task_from_cli(args: argparse.Namespace) -> Task:
+    """Constrói uma Task a partir de argumentos CLI com flags hierárquicas."""
+    missing = [
+        flag
+        for field, flag in REQUIRED_CLI_FIELDS.items()
+        if not getattr(args, field, None)
+    ]
+    if missing:
+        raise TaskValidationError(
+            "Campos obrigatórios faltando: " + ", ".join(missing)
+        )
+
+    task_dict = _build_nested_dict_from_args(args)
+    try:
+        return Task.model_validate(task_dict)
+    except TaskValidationError:
+        raise
+    except Exception as exc:
+        raise TaskValidationError(f"Contrato inválido via CLI: {exc}") from exc
 
 
 def _configure_logging(
     level: str,
-    task_path: Path,
+    task_path: Path | None = None,
+    table_name: str | None = None,
     log_file: Path | None = None,
 ) -> Path:
     """Configura logging para console e arquivo simultaneamente."""
     log_level = getattr(logging, level)
-    destination = log_file or _default_log_path(task_path)
+    if log_file:
+        destination = log_file
+    elif task_path:
+        destination = _default_log_path(task_path)
+    elif table_name:
+        destination = _default_log_path_from_table(table_name)
+    else:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        destination = DEFAULT_LOG_DIR / f"metro_{timestamp}.log"
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     root_logger = logging.getLogger()
@@ -243,6 +534,12 @@ def _default_log_path(task_path: Path) -> Path:
     subdir = task_path.parent.name
     base = DEFAULT_LOG_DIR / subdir if subdir in LOG_SUBDIRS else DEFAULT_LOG_DIR
     return base / f"{task_path.stem}_{timestamp}.log"
+
+
+def _default_log_path_from_table(table_name: str) -> Path:
+    """Gera path de log para task via CLI (sem YAML)."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return DEFAULT_LOG_DIR / f"{table_name}_{timestamp}.log"
 
 
 def _build_secret_provider(name: str) -> SecretProvider:
