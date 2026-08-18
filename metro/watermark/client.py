@@ -8,6 +8,8 @@ from urllib.parse import quote
 
 import requests
 
+from metro.settings import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +44,7 @@ class WatermarkClient:
         )
 
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=settings.watermark_api_timeout)
             if response.status_code == 404:
                 logger.debug(
                     "Watermark não encontrado (task_identifier=%s, "
@@ -85,7 +87,7 @@ class WatermarkClient:
         }
 
         try:
-            response = requests.post(url, json=payload, timeout=10)
+            response = requests.post(url, json=payload, timeout=settings.watermark_api_timeout)
             if response.status_code == 409:
                 logger.warning(
                     "Watermark já existe (task_identifier=%s, "
@@ -134,7 +136,7 @@ class WatermarkClient:
         }
 
         try:
-            response = requests.put(url, json=payload, timeout=10)
+            response = requests.put(url, json=payload, timeout=settings.watermark_api_timeout)
             response.raise_for_status()
             logger.info(
                 "Watermark atualizado (task_identifier=%s, "

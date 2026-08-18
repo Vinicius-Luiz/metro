@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 
 from metro.queries.base import QueryRepository
+from metro.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +19,9 @@ class LocalQueryRepository(QueryRepository):
     """Resolve queries a partir de `.metro/queries/` (ou base_dir informado)."""
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
-        self._base_dir = (
-            Path(base_dir) if base_dir else Path.cwd() / ".metro" / "queries"
-        )
+        if base_dir is None:
+            base_dir = settings.query_repository_base_dir
+        self._base_dir = Path(base_dir)
 
     @property
     def base_dir(self) -> Path:

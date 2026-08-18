@@ -17,6 +17,7 @@ Não utiliza CDC, replication slots ou mensageria. Cada execução processa **um
 - Incremental Append / MaxValue: PostgreSQL → Local (via Watermark API)
 - Escrita atômica via pasta `_tmp`
 - CLI `metro run` (YAML ou flags)
+- Configuração do motor em `metro/settings.py`
 - Secrets locais via `.env`
 - Queries em `.metro/queries/` — ou query padrão (`SELECT *`) se `query_path` não for informado
 - Logs no console e em `logs/`
@@ -44,7 +45,40 @@ Ou: `pip install -r requirements.txt`
 
 ---
 
-## Configuração (`.env`)
+## Configuração
+
+Há duas camadas distintas:
+
+- **Settings** (`metro/settings.py`): infraestrutura do motor (logs, watermark API, query repository, provider de secrets).
+- **Secrets** (`.env` / Secret Provider): connection strings e runtimes de cada task.
+
+### Settings do METRO
+
+Valores padrão vivem em `metro/settings.py`. Qualquer um pode ser sobrescrito por variável de ambiente com prefixo `METRO_`:
+
+```env
+METRO_SECRET_PROVIDER=local
+METRO_LOG_LEVEL=INFO
+METRO_LOG_DIR=./logs
+# METRO_LOG_FILE=./logs/custom.log
+METRO_WATERMARK_API_URL=http://localhost:8000
+METRO_WATERMARK_API_TIMEOUT=10
+METRO_QUERY_REPOSITORY_BASE_DIR=./.metro/queries
+METRO_LOCAL_STORAGE_BASE_PATH=./local
+```
+
+| Variável | Descrição | Default |
+| --- | --- | --- |
+| `METRO_SECRET_PROVIDER` | Provider de secrets (`local` por enquanto) | `local` |
+| `METRO_LOG_LEVEL` | Nível de log | `INFO` |
+| `METRO_LOG_DIR` | Diretório de logs | `logs` |
+| `METRO_LOG_FILE` | Arquivo de log (se omitido, gera `logs/<task>_<timestamp>.log`) | — |
+| `METRO_WATERMARK_API_URL` | URL da API de watermark | `http://localhost:8000` |
+| `METRO_WATERMARK_API_TIMEOUT` | Timeout HTTP da API de watermark (segundos) | `10` |
+| `METRO_QUERY_REPOSITORY_BASE_DIR` | Diretório das queries | `.metro/queries` |
+| `METRO_LOCAL_STORAGE_BASE_PATH` | Fallback do Target Local quando o secret não informa `base_path` | `./local` |
+
+### Secrets (`.env`)
 
 Crie um `.env` na raiz (não versionado). Modelo em `example.env`:
 
@@ -63,6 +97,8 @@ O `runtime` do YAML vira `METRO_<RUNTIME_EM_UPPER_SNAKE>`. Sources de banco usam
 | `development_storage` | `METRO_DEVELOPMENT_STORAGE_BASE_PATH` |
 | *(API watermark)* | `METRO_WATERMARK_POSTGRES_DATABASE` |
 
+`METRO_WATERMARK_POSTGRES_DATABASE` é conexão do **serviço** da Watermark API (`.watermark/`), não um secret de task do motor.
+
 ---
 
 ## Como executar
@@ -70,8 +106,8 @@ O `runtime` do YAML vira `METRO_<RUNTIME_EM_UPPER_SNAKE>`. Sources de banco usam
 Uma task por comando. O contrato vem de um YAML:
 
 ```powershell
-metro run tasks/full_load/pagila_actor.yaml --secret-provider local
-metro run tasks/full_load/pagila_film_full_partition.yaml --secret-provider local
+metro run tasks/full_load/pagila_actor.yaml
+metro run tasks/full_load/pagila_film_full_partition.yaml
 ```
 
 YAMLs de exemplo:
@@ -90,22 +126,7 @@ tasks/
 | `tasks/incremental_replace/pagila_film_replace.yaml` | Incremental Replace |
 | `tasks/incremental_append/stackoverflow_posts_append.yaml` | Incremental Append |
 
-**Append** precisa da Watermark API no ar — setup em [`.watermark/README.md`](.watermark/README.md).
-
-Opções úteis:
-
-```powershell
-metro run tasks/full_load/pagila_actor.yaml --secret-provider local --log-level DEBUG
-metro run tasks/full_load/pagila_actor.yaml --secret-provider local --log-file logs/meu_run.log
-```
-
-| Argumento | Descrição | Default |
-| --- | --- | --- |
-| `task` | Caminho do YAML | — |
-| `--secret-provider` | Provider de secrets (`local` por enquanto) | `local` |
-| `--watermark-api-url` | URL da API de watermark | `http://localhost:8000` |
-| `--log-level` | Nível de log | `INFO` |
-| `--log-file` | Arquivo de log | `logs/<task>_<timestamp>.log` |
+**Append** precisa da Watermark API no ar — setup em [`.watermark/README.md`](.watermark/README.md). Logging e URL da API vêm de `metro/settings.py` (ou das variáveis `METRO_*` correspondentes).
 
 ---
 
@@ -148,8 +169,7 @@ metro run `
   --source.runtime pagila_postgres_database `
   --target.type local `
   --target.runtime development_storage `
-  --replication.mode full_load `
-  --secret-provider local
+  --replication.mode full_load
 ```
 
 Se um YAML for informado, as flags de contrato da CLI são ignoradas.

@@ -16,6 +16,7 @@ from metro.replication.incremental.append.max_value import AppendMaxValueStrateg
 from metro.replication.incremental.replace.partition import ReplacePartitionStrategy
 from metro.secrets.base import SecretProvider
 from metro.secrets.local import LocalSecretProvider
+from metro.settings import settings
 from metro.sources.base import SourceEndpoint
 from metro.sources.sql.postgresql import PostgreSQLSource
 from metro.targets.base import TargetEndpoint
@@ -24,7 +25,6 @@ from metro.watermark.client import WatermarkClient
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_LOG_DIR = Path("logs")
 LOG_SUBDIRS = {"full_load", "incremental_replace", "incremental_append"}
 LOG_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
 
@@ -51,10 +51,8 @@ def main(argv: list[str] | None = None) -> int:
 
     task_path = Path(args.task) if args.task else None
     log_file = _configure_logging(
-        level=args.log_level,
         task_path=task_path,
         table_name=getattr(args, "table_name", None),
-        log_file=Path(args.log_file) if args.log_file else None,
     )
     logger.info("Arquivo de log: %s", log_file)
 
@@ -65,25 +63,17 @@ def main(argv: list[str] | None = None) -> int:
         else:
             logger.info("Construindo task via argumentos CLI")
             task = _build_task_from_cli(args)
-        run_task(
-            task=task,
-            secret_provider_name=args.secret_provider,
-            watermark_api_url=args.watermark_api_url,
-        )
+        run_task(task=task)
     except Exception:
         logger.exception("Falha ao executar a task")
         return 1
     return 0
 
 
-def run_task(
-    task: Task,
-    secret_provider_name: str,
-    watermark_api_url: str | None = None,
-) -> None:
+def run_task(task: Task) -> None:
     """Executa exatamente uma task (uma tabela) por invocação."""
     execution_timestamp = datetime.now()
-    _log_task_parameters(task, secret_provider_name)
+    _log_task_parameters(task)
 
     metadata_context = _build_metadata_context(task, execution_timestamp)
     if metadata_context is not None:
@@ -93,7 +83,7 @@ def run_task(
             execution_timestamp.replace(microsecond=0).isoformat(timespec="seconds"),
         )
 
-    secret_provider = _build_secret_provider(secret_provider_name)
+    secret_provider = _build_secret_provider()
     query_repository = LocalQueryRepository()
     logger.debug("QueryRepository base_dir=%s", query_repository.base_dir)
 
@@ -104,9 +94,13 @@ def run_task(
         and task.replication.strategy.type == "append"
     )
     if needs_watermark:
-        api_url = watermark_api_url or "http://localhost:8000"
-        watermark_client = WatermarkClient(api_base_url=api_url)
-        logger.debug("WatermarkClient configurado com api_base_url=%s", api_url)
+        watermark_client = WatermarkClient(
+            api_base_url=settings.watermark_api_url
+        )
+        logger.debug(
+            "WatermarkClient configurado com api_base_url=%s",
+            settings.watermark_api_url,
+        )
 
     source = _build_source(task, secret_provider, query_repository)
     target = _build_target(task, secret_provider)
@@ -126,14 +120,14 @@ def run_task(
     logger.info("Replicação concluída (table=%s)", task.table.qualified_name)
 
 
-def _log_task_parameters(task: Task, secret_provider_name: str) -> None:
+def _log_task_parameters(task: Task) -> None:
     """Registra parâmetros efetivos da task em nível debug."""
     strategy = task.replication.strategy
     logger.debug(
         "Parâmetros METRO | secret_provider=%s | table.schema_name=%s | "
         "table.name=%s | table.qualified_name=%s | table.target_schema_name=%s | "
         "table.target_name=%s | table.target_dataset_path=%s",
-        secret_provider_name,
+        settings.secret_provider,
         task.table.schema_name,
         task.table.name,
         task.table.qualified_name,
@@ -222,31 +216,6 @@ def _build_parser() -> argparse.ArgumentParser:
         "task",
         nargs="?",
         help="Caminho do YAML da task (opcional se as flags CLI forem fornecidas)",
-    )
-    run_parser.add_argument(
-        "--secret-provider",
-        default="local",
-        choices=["local"],
-        help="Provider de secrets (padrão: local)",
-    )
-    run_parser.add_argument(
-        "--watermark-api-url",
-        default="http://localhost:8000",
-        help="URL base da API de watermark (padrão: http://localhost:8000)",
-    )
-    run_parser.add_argument(
-        "--log-level",
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Nível de logging (padrão: INFO)",
-    )
-    run_parser.add_argument(
-        "--log-file",
-        default=None,
-        help=(
-            "Caminho do arquivo de log. "
-            "Padrão: logs/<modo>/<task>_<timestamp>.log"
-        ),
     )
 
     table_group = run_parser.add_argument_group("table")
@@ -491,22 +460,20 @@ def _build_task_from_cli(args: argparse.Namespace) -> Task:
 
 
 def _configure_logging(
-    level: str,
     task_path: Path | None = None,
     table_name: str | None = None,
-    log_file: Path | None = None,
 ) -> Path:
     """Configura logging para console e arquivo simultaneamente."""
-    log_level = getattr(logging, level)
-    if log_file:
-        destination = log_file
+    log_level = getattr(logging, settings.log_level)
+    if settings.log_file:
+        destination = settings.log_file
     elif task_path:
         destination = _default_log_path(task_path)
     elif table_name:
         destination = _default_log_path_from_table(table_name)
     else:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        destination = DEFAULT_LOG_DIR / f"metro_{timestamp}.log"
+        destination = settings.log_dir / f"metro_{timestamp}.log"
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     root_logger = logging.getLogger()
@@ -532,21 +499,27 @@ def _default_log_path(task_path: Path) -> Path:
     """Gera o path padrão `logs/<modo>/<task>_<timestamp>.log`."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     subdir = task_path.parent.name
-    base = DEFAULT_LOG_DIR / subdir if subdir in LOG_SUBDIRS else DEFAULT_LOG_DIR
+    base = (
+        settings.log_dir / subdir
+        if subdir in LOG_SUBDIRS
+        else settings.log_dir
+    )
     return base / f"{task_path.stem}_{timestamp}.log"
 
 
 def _default_log_path_from_table(table_name: str) -> Path:
     """Gera path de log para task via CLI (sem YAML)."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return DEFAULT_LOG_DIR / f"{table_name}_{timestamp}.log"
+    return settings.log_dir / f"{table_name}_{timestamp}.log"
 
 
-def _build_secret_provider(name: str) -> SecretProvider:
-    """Instancia o Secret Provider pedido pela CLI."""
-    if name == "local":
+def _build_secret_provider() -> SecretProvider:
+    """Instancia o Secret Provider configurado em settings."""
+    if settings.secret_provider == "local":
         return LocalSecretProvider()
-    raise ValueError(f"Secret provider não suportado: {name}")
+    raise ValueError(
+        f"Secret provider não suportado: {settings.secret_provider}"
+    )
 
 
 def _build_source(

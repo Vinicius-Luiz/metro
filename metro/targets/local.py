@@ -10,11 +10,10 @@ from typing import Any
 import polars as pl
 
 from metro.secrets.base import SecretProvider
+from metro.settings import settings
 from metro.targets.base import TEMP_DIRNAME, TargetEndpoint
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_BASE_PATH = "./local"
 
 
 class LocalTarget(TargetEndpoint):
@@ -225,7 +224,7 @@ class LocalTarget(TargetEndpoint):
         if isinstance(secret, str):
             return Path(secret)
 
-        base_path = secret.get("base_path", DEFAULT_BASE_PATH)
+        base_path = secret.get("base_path", settings.local_storage_base_path)
         return Path(str(base_path))
 
 
