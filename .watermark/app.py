@@ -16,9 +16,9 @@ from pydantic import BaseModel, Field
 _ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(_ENV_PATH)
 
-DATABASE_URL = os.getenv("METRO_WATERMARK_POSTGRES_DATABASE")
+DATABASE_URL = os.getenv("METRO_WATERMARK_DATABASE")
 if not DATABASE_URL:
-    raise RuntimeError("METRO_WATERMARK_POSTGRES_DATABASE não configurado no .env")
+    raise RuntimeError("METRO_WATERMARK_DATABASE não configurado no .env")
 
 app = FastAPI(
     title="METRO Watermark API",

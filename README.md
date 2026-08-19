@@ -19,7 +19,6 @@ PostgreSQL e SQL Server → Local (Full Load, Incremental Replace/Partition, Inc
 ## Pré-requisitos
 
 - Python **3.10+**
-- PostgreSQL acessível (para os exemplos Pagila)
 
 ---
 
@@ -40,12 +39,12 @@ Ou: `pip install -r requirements.txt`
 
 Há duas camadas distintas:
 
-- **Settings** (`metro/settings.py`): infraestrutura do motor (logs, watermark API, query repository, provider de secrets).
-- **Secrets** (`.env` / Secret Provider): connection strings e runtimes de cada task.
+- **Settings** (`metro/settings.py`): infraestrutura do motor (logs, watermark API, query repository, provider de secrets). Não lê o `.env`.
+- **Secrets** (`.env` / Secret Provider): somente credenciais — connection strings e secrets de runtime.
 
 ### Settings do METRO
 
-Valores padrão vivem em `metro/settings.py`. Qualquer um pode ser sobrescrito por variável de ambiente com prefixo `METRO_`:
+Valores padrão vivem em `metro/settings.py`. Em runtime (ECS, Docker, shell) podem ser sobrescritos por variáveis de ambiente do **processo** com prefixo `METRO_`. Não coloque essas variáveis no `.env`:
 
 | Variável | Descrição | Default |
 | --- | --- | --- |
@@ -60,12 +59,14 @@ Valores padrão vivem em `metro/settings.py`. Qualquer um pode ser sobrescrito p
 
 ### Secrets (`.env`)
 
+O `.env` guarda **somente credenciais**. Configuração do motor (nível de log, URL da API, diretórios) não entra nesse arquivo.
+
 Crie um `.env` na raiz (não versionado). Modelo em `example.env`:
 
 ```env
 METRO_PAGILA_POSTGRES_DATABASE="postgresql://user:password@localhost:5432/pagila"
 METRO_DEVELOPMENT_STORAGE_BASE_PATH="./local"
-METRO_WATERMARK_POSTGRES_DATABASE="postgresql://user:password@localhost:5432/metro_watermark"
+METRO_WATERMARK_DATABASE="postgresql://user:password@localhost:5432/metro_watermark"
 ```
 
 O `runtime` do YAML vira `METRO_<RUNTIME_EM_UPPER_SNAKE>`. Sources de banco usam o padrão `<nome>_<database_type>_database`.
@@ -76,19 +77,9 @@ O `runtime` do YAML vira `METRO_<RUNTIME_EM_UPPER_SNAKE>`. Sources de banco usam
 | `stackoverflow_postgres_database` | `METRO_STACKOVERFLOW_POSTGRES_DATABASE` |
 | `stackoverflow_sql_server_database` | `METRO_STACKOVERFLOW_SQL_SERVER_DATABASE` |
 | `development_storage` | `METRO_DEVELOPMENT_STORAGE_BASE_PATH` |
-| *(API watermark)* | `METRO_WATERMARK_POSTGRES_DATABASE` |
+| *(API watermark)* | `METRO_WATERMARK_DATABASE` |
 
-`METRO_WATERMARK_POSTGRES_DATABASE` é conexão do **serviço** da Watermark API (`.watermark/`), não um secret de task do motor.
-
-### Connection String SQL Server
-
-O SQL Server usa a biblioteca oficial `mssql-python`, que requer connection strings no formato:
-
-```env
-METRO_STACKOVERFLOW_SQL_SERVER_DATABASE="Server=localhost;Database=StackOverflow2010;UID=sa;PWD=senha;TrustServerCertificate=yes;Encrypt=yes;"
-```
-
-**Importante**: Não inclua `Driver={...}` na connection string — o `mssql-python` gerencia drivers automaticamente. Aliases ADO.NET (`User Id`, `Password`, `True`/`False`) também são aceitos.
+`METRO_WATERMARK_DATABASE` é conexão do **serviço** da Watermark API (`.watermark/`), não um secret de task do motor.
 
 ---
 
@@ -118,7 +109,7 @@ tasks/
 | `tasks/incremental_replace/pagila_film_replace.yaml` | Incremental Replace |
 | `tasks/incremental_append/stackoverflow_posts_append.yaml` | Incremental Append |
 
-**Append** precisa da Watermark API no ar — setup em [`.watermark/README.md`](.watermark/README.md). Logging e URL da API vêm de `metro/settings.py` (ou das variáveis `METRO_*` correspondentes).
+**Append** precisa da Watermark API no ar — setup em [`.watermark/README.md`](.watermark/README.md). Logging e URL da API vêm de `metro/settings.py` (ou das variáveis de ambiente do processo `METRO_*` correspondentes, nunca do `.env`).
 
 ---
 

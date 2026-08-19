@@ -1,7 +1,10 @@
 """Configurações de infraestrutura do METRO.
 
-Valores podem ser sobrescritos por variáveis de ambiente com prefixo `METRO_`.
-Secrets de task (connection strings, runtimes) permanecem no Secret Provider.
+Valores padrão vivem neste módulo. Podem ser sobrescritos por variáveis de
+ambiente do processo com prefixo `METRO_` (ex.: ECS, Docker, shell).
+
+O arquivo `.env` não é lido aqui: ele guarda somente credenciais do Secret
+Provider (connection strings e secrets de runtime).
 """
 
 from __future__ import annotations
@@ -18,8 +21,7 @@ class MetroSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="METRO_",
-        env_file=".env",
-        env_file_encoding="utf-8",
+        env_file=None,
         env_ignore_empty=True,
         extra="ignore",
         case_sensitive=False,

@@ -86,8 +86,6 @@ Polars é o núcleo de representação e processamento. O fluxo conceitual:
 Source → Source Data → Polars DataFrame → Replication → Parquet
 ```
 
-Não existem entidades de domínio `Row` ou `Document`. Diferenças entre SQL e NoSQL não são abstraídas pelo core: cada Source entrega um DataFrame.
-
 # Table
 
 `Table` é identidade e metadados do dataset — não a representação física de cada registro. Metadados de colunas ficam a cargo do Source (ex.: `information_schema` em SQL). Em NoSQL, `name` pode representar uma collection.
@@ -162,7 +160,7 @@ O METRO não tem banco auxiliar. O estado do Append vem de uma **API HTTP extern
 METRO → WatermarkClient (HTTP) → Watermark API → PostgreSQL (infra do serviço)
 ```
 
-O PostgreSQL pertence ao serviço de watermark, não ao METRO. No desenvolvimento local a API vive em `.watermark/` e o database é `metro_watermark`.
+No desenvolvimento local a API vive em `.watermark/`.
 
 # Runtime e Secret Provider
 

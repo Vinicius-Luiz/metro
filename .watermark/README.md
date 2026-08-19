@@ -13,7 +13,7 @@ psql -U postgres -h localhost -p 5432 -f setup_watermark.sql
 ### 2. Configurar `.env` (na raiz do METRO)
 
 ```env
-METRO_WATERMARK_POSTGRES_DATABASE="postgresql://postgres:senha@localhost:5432/metro_watermark"
+METRO_WATERMARK_DATABASE="postgresql://postgres:senha@localhost:5432/metro_watermark"
 ```
 
 ### 3. Instalar dependências e iniciar API

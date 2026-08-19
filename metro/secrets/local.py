@@ -1,4 +1,4 @@
-"""Secret Provider local baseado em variáveis de ambiente (.env)."""
+"""Secret Provider local baseado em credenciais do arquivo `.env`."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ class SecretNotFoundError(LookupError):
 
 
 class LocalSecretProvider(SecretProvider):
-    """Simula AWS Secrets Manager via `.env` local.
+    """Simula AWS Secrets Manager via `.env` local (somente credenciais).
 
     Convenção:
     - connection string: `METRO_{RUNTIME}`

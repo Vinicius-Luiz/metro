@@ -46,3 +46,5 @@ target:
 ```
 
 Secret Provider escolhido na inicialização (`metro run --secret-provider local|aws`), nunca no contrato de replicação.
+
+O `.env` guarda **somente credenciais** (connection strings e secrets de runtime). Configuração do motor (logs, URL da watermark API, query repository, secret provider) vive em `metro/settings.py` ou em variáveis de ambiente do processo. `MetroSettings` não lê o arquivo `.env`.
