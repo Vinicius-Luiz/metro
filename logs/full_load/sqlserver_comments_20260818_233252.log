@@ -1,0 +1,22 @@
+2026-08-18 23:32:52,144 INFO [metro.cli.main] Arquivo de log: C:\Users\Vinicius Luiz\Desktop\Scripts\metro\logs\full_load\sqlserver_comments_20260818_233252.log
+2026-08-18 23:32:52,144 INFO [metro.cli.main] Carregando task do YAML: tasks\full_load\sqlserver_comments.yaml
+2026-08-18 23:32:52,146 INFO [metro.cli.main] Metadados habilitados (source=dbo.Comments, timestamp=2026-08-18T23:32:52)
+2026-08-18 23:32:52,148 INFO [metro.cli.main] Iniciando replicação (table=dbo.Comments, mode=full_load, source=sqlserver, target=local)
+2026-08-18 23:32:52,148 INFO [metro.sources.sql.sqlserver] Conectando ao SQL Server (runtime=stackoverflow_sql_server_database)
+2026-08-18 23:32:52,158 ERROR [metro.cli.main] Falha ao executar a task
+Traceback (most recent call last):
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\metro\cli\main.py", line 67, in main
+    run_task(task=task)
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\metro\cli\main.py", line 118, in run_task
+    with source, target:
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\metro\core\endpoint.py", line 35, in __enter__
+    self.connect()
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\metro\sources\sql\sqlserver.py", line 86, in connect
+    self._connection = mssql_python.connect(
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\venv\lib\site-packages\mssql_python\db_connection.py", line 84, in connect
+    conn = Connection(
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\venv\lib\site-packages\mssql_python\connection.py", line 719, in __init__
+    _raise_connection_error(e)
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\venv\lib\site-packages\mssql_python\connection.py", line 124, in _raise_connection_error
+    raise exc from None
+mssql_python.exceptions.OperationalError: Driver Error: Client unable to establish connection; DDBC Error: [Microsoft]Invalid value specified for connection string attribute 'Encrypt'

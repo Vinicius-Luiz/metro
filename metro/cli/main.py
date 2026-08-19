@@ -19,6 +19,7 @@ from metro.secrets.local import LocalSecretProvider
 from metro.settings import settings
 from metro.sources.base import SourceEndpoint
 from metro.sources.sql.postgresql import PostgreSQLSource
+from metro.sources.sql.sqlserver import SQLServerSource
 from metro.targets.base import TargetEndpoint
 from metro.targets.local import LocalTarget
 from metro.watermark.client import WatermarkClient
@@ -228,7 +229,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_task_flag(
         source_group,
         "--source.type",
-        help="Tipo do source (postgresql, mongodb, etc)",
+        help="Tipo do source (postgresql, sqlserver, mongodb, etc)",
     )
     _add_task_flag(source_group, "--source.runtime", help="Runtime do source")
     _add_task_flag(
@@ -531,6 +532,15 @@ def _build_source(
     source_type = task.source.type
     if source_type == "postgresql":
         return PostgreSQLSource(
+            runtime=task.source.runtime,
+            secret_provider=secret_provider,
+            query_repository=query_repository,
+            query_path=task.source.query_path,
+            chunk_size=task.source.chunk_size,
+            table=task.table,
+        )
+    if source_type == "sqlserver":
+        return SQLServerSource(
             runtime=task.source.runtime,
             secret_provider=secret_provider,
             query_repository=query_repository,

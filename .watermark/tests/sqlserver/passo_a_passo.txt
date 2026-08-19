@@ -1,0 +1,147 @@
+================================================================================
+PASSO A PASSO — Super Teste METRO: Incremental Append (MaxValue) — SQL Server
+================================================================================
+
+Pré-requisitos
+--------------
+1. .env configurado com METRO_STACKOVERFLOW_SQL_SERVER_DATABASE e METRO_DEVELOPMENT_STORAGE_BASE_PATH
+2. Watermark API no ar: cd .watermark && uvicorn app:app --port 8000
+3. venv ativo e metro instalado (pip install -e .)
+
+Tasks utilizadas
+----------------
+- Plano:       tasks/incremental_append/sqlserver_test_watermark_append.yaml
+- Particionado: tasks/incremental_append/sqlserver_test_watermark_append_partitioned.yaml
+
+Comando base
+------------
+metro run <task>
+
+================================================================================
+ETAPA 0 — Setup da tabela
+================================================================================
+
+SQL (sqlcmd / SSMS / Azure Data Studio):
+  00_create_table.sql
+  01_insert_10.sql
+
+Estado esperado na origem: 10 registros, MAX(last_update) = 2025-05-10 22:00:00
+
+================================================================================
+ETAPA 1 — Primeira execução (Full Load equivalente)
+================================================================================
+
+Comando:
+  metro run tasks/incremental_append/sqlserver_test_watermark_append.yaml
+
+Resultado esperado:
+  - Log em logs/incremental_append/sqlserver_test_watermark_append_<timestamp>.log
+  - Parquet em ./local/raw/sqlserver_test_watermark_append/
+  - 10 linhas processadas
+  - Watermark criado: raw.sqlserver_test_watermark_append / last_update = 2025-05-10 22:00:00
+
+Comando (particionado):
+  metro run tasks/incremental_append/sqlserver_test_watermark_append_partitioned.yaml
+
+Resultado esperado:
+  - Parquet em ./local/raw/sqlserver_test_watermark_append_partitioned/year=2023|2024|2025/
+  - 10 linhas processadas (partições year=2023: 3, year=2024: 4, year=2025: 3)
+  - Watermark criado: raw.sqlserver_test_watermark_append_partitioned / last_update = 2025-05-10 22:00:00
+
+================================================================================
+ETAPA 2 — Append de 5 novos registros
+================================================================================
+
+SQL:
+  02_insert_5.sql
+
+Estado esperado na origem: 15 registros, MAX(last_update) = 2025-05-15 17:45:00
+
+Comando:
+  metro run tasks/incremental_append/sqlserver_test_watermark_append.yaml
+
+Resultado esperado:
+  - 5 linhas novas processadas (watermark anterior: 2025-05-10 22:00:00)
+  - Parquet acumulado: 15 linhas totais (append, não replace)
+  - Watermark atualizado: 2025-05-15 17:45:00
+
+Comando (particionado):
+  metro run tasks/incremental_append/sqlserver_test_watermark_append_partitioned.yaml
+
+Resultado esperado:
+  - 5 linhas novas em year=2025/
+  - Watermark atualizado: 2025-05-15 17:45:00
+
+================================================================================
+ETAPA 3 — Update de 4 registros (reaparecem como novas linhas)
+================================================================================
+
+SQL:
+  03_update_4.sql
+
+Estado esperado na origem: 15 registros (4 com last_update = 2025-05-16 12:00:00)
+
+Comando:
+  metro run tasks/incremental_append/sqlserver_test_watermark_append.yaml
+
+Resultado esperado:
+  - 4 linhas processadas (registros com last_update > watermark)
+  - Parquet acumulado: 19 linhas totais (15 + 4 duplicatas por update)
+  - Watermark atualizado: 2025-05-16 12:00:00
+  - NOTA: Append NÃO atualiza linhas existentes no Parquet; insere novas versões
+
+Comando (particionado):
+  metro run tasks/incremental_append/sqlserver_test_watermark_append_partitioned.yaml
+
+Resultado esperado:
+  - 4 linhas novas distribuídas nas partições year=2023, 2024, 2025
+  - Watermark atualizado: 2025-05-16 12:00:00
+
+================================================================================
+ETAPA 4 — Delete de 1 registro (Append NÃO captura)
+================================================================================
+
+SQL:
+  04_delete_1.sql
+
+Estado esperado na origem: 14 registros (registro_03 removido)
+
+Comando:
+  metro run tasks/incremental_append/sqlserver_test_watermark_append.yaml
+
+Resultado esperado:
+  - 0 linhas processadas ("Nenhum dado novo encontrado")
+  - Parquet permanece com 19 linhas (registro_03 ainda presente — delete não propagado)
+  - Watermark inalterado: 2025-05-16 12:00:00
+
+Comando (particionado):
+  metro run tasks/incremental_append/sqlserver_test_watermark_append_partitioned.yaml
+
+Resultado esperado:
+  - 0 linhas processadas
+  - Watermark inalterado
+
+================================================================================
+ETAPA 5 — Cleanup
+================================================================================
+
+SQL:
+  99_cleanup.sql
+
+API (opcional — remover watermarks):
+  curl -X DELETE http://localhost:8000/watermarks/raw.sqlserver_test_watermark_append/last_update
+  curl -X DELETE http://localhost:8000/watermarks/raw.sqlserver_test_watermark_append_partitioned/last_update
+
+================================================================================
+RESUMO SEMÂNTICA APPEND
+================================================================================
+
+| Operação na origem | Capturado pelo Append? | Efeito no Parquet        |
+|--------------------|------------------------|--------------------------|
+| INSERT novo        | Sim                    | Nova linha adicionada    |
+| UPDATE (last_update)| Sim (como nova linha) | Duplicata com novo valor |
+| DELETE             | Não                    | Linha permanece no Parquet|
+
+Verificação de watermarks via API:
+  curl http://localhost:8000/watermarks/raw.sqlserver_test_watermark_append/last_update
+  curl http://localhost:8000/watermarks/raw.sqlserver_test_watermark_append_partitioned/last_update

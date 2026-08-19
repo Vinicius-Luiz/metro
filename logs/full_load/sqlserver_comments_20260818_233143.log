@@ -1,0 +1,26 @@
+2026-08-18 23:31:43,123 INFO [metro.cli.main] Arquivo de log: C:\Users\Vinicius Luiz\Desktop\Scripts\metro\logs\full_load\sqlserver_comments_20260818_233143.log
+2026-08-18 23:31:43,125 INFO [metro.cli.main] Carregando task do YAML: tasks\full_load\sqlserver_comments.yaml
+2026-08-18 23:31:43,127 INFO [metro.cli.main] Metadados habilitados (source=dbo.Comments, timestamp=2026-08-18T23:31:43)
+2026-08-18 23:31:43,128 INFO [metro.cli.main] Iniciando replicação (table=dbo.Comments, mode=full_load, source=sqlserver, target=local)
+2026-08-18 23:31:43,128 INFO [metro.sources.sql.sqlserver] Conectando ao SQL Server (runtime=stackoverflow_sql_server_database)
+2026-08-18 23:31:43,129 ERROR [metro.cli.main] Falha ao executar a task
+Traceback (most recent call last):
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\metro\cli\main.py", line 67, in main
+    run_task(task=task)
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\metro\cli\main.py", line 118, in run_task
+    with source, target:
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\metro\core\endpoint.py", line 35, in __enter__
+    self.connect()
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\metro\sources\sql\sqlserver.py", line 62, in connect
+    self._connection = mssql_python.connect(secret)
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\venv\lib\site-packages\mssql_python\db_connection.py", line 84, in connect
+    conn = Connection(
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\venv\lib\site-packages\mssql_python\connection.py", line 368, in __init__
+    self.connection_str, parsed_params = self._construct_connection_string(
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\venv\lib\site-packages\mssql_python\connection.py", line 885, in _construct_connection_string
+    parsed_params = parser._parse(connection_str)
+  File "C:\Users\Vinicius Luiz\Desktop\Scripts\metro\venv\lib\site-packages\mssql_python\connection_string_parser.py", line 273, in _parse
+    raise ConnectionStringParseError(errors)
+mssql_python.exceptions.ConnectionStringParseError: Connection string parsing failed:
+  Unknown keyword 'user id' is not recognized
+  Unknown keyword 'password' is not recognized

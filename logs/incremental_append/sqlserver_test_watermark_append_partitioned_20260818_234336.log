@@ -1,0 +1,24 @@
+2026-08-18 23:43:36,023 INFO [metro.cli.main] Arquivo de log: C:\Users\Vinicius Luiz\Desktop\Scripts\metro\logs\incremental_append\sqlserver_test_watermark_append_partitioned_20260818_234336.log
+2026-08-18 23:43:36,023 INFO [metro.cli.main] Carregando task do YAML: tasks\incremental_append\sqlserver_test_watermark_append_partitioned.yaml
+2026-08-18 23:43:36,026 INFO [metro.cli.main] Metadados habilitados (source=dbo.test_watermark, timestamp=2026-08-18T23:43:36)
+2026-08-18 23:43:36,027 INFO [metro.cli.main] Iniciando replicação (table=dbo.test_watermark, mode=incremental, source=sqlserver, target=local)
+2026-08-18 23:43:36,027 INFO [metro.sources.sql.sqlserver] Conectando ao SQL Server (runtime=stackoverflow_sql_server_database)
+2026-08-18 23:43:36,147 INFO [metro.targets.local] LocalTarget pronto (runtime=development_storage, base_path=local)
+2026-08-18 23:43:38,283 INFO [metro.watermark.client] Watermark obtido (task_identifier=raw.sqlserver_test_watermark_append_partitioned, reference_column=last_update, watermark_value=2025-05-15 17:45:00)
+2026-08-18 23:43:38,283 INFO [metro.replication.incremental.append.max_value] Executando Append/MaxValue (task_identifier=raw.sqlserver_test_watermark_append_partitioned, reference_column=last_update, watermark_anterior=2025-05-15 17:45:00)
+2026-08-18 23:43:38,284 INFO [metro.sources.sql.sqlserver] Lower bound aplicado (runtime=stackoverflow_sql_server_database, column=last_update, min_value=2025-05-15 17:45:00, inclusive=False)
+2026-08-18 23:43:38,284 INFO [metro.targets.local] Staging iniciado: local\raw\sqlserver_test_watermark_append_partitioned\_tmp
+2026-08-18 23:43:38,286 INFO [metro.replication.incremental.append.max_value] Append particionado (partition_column=last_update, granularity=year)
+2026-08-18 23:43:38,287 INFO [metro.sources.sql.sqlserver] Query padrão montada para dbo.test_watermark (4 colunas)
+2026-08-18 23:43:38,289 INFO [metro.sources.sql.sqlserver] Executando query no SQL Server (runtime=stackoverflow_sql_server_database)
+2026-08-18 23:43:38,294 INFO [metro.replication.writer] Materializando parte 1 (path=raw/sqlserver_test_watermark_append_partitioned/_tmp/year=2025/part_0001.parquet, rows=4)
+2026-08-18 23:43:38,294 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_test_watermark_append_partitioned\_tmp\year=2025\part_0001.parquet
+2026-08-18 23:43:38,298 INFO [metro.replication.writer] Materialização particionada concluída (rows=4, files=1, read_batches=1, partitions_written=1, tracked_max=2025-05-16 12:00:00)
+2026-08-18 23:43:38,298 INFO [metro.replication.incremental.append.max_value] Extração Append particionado concluída (rows=4, watermark=2025-05-16 12:00:00)
+2026-08-18 23:43:38,298 INFO [metro.replication.incremental.append.max_value] Novo watermark calculado (reference_column=last_update, watermark=2025-05-16 12:00:00, tipo=timestamp, rows=4, partitioned=True)
+2026-08-18 23:43:38,301 INFO [metro.targets.local] Arquivo append promovido: local\raw\sqlserver_test_watermark_append_partitioned\year=2025\part_0003.parquet
+2026-08-18 23:43:38,303 INFO [metro.targets.local] Staging append commitado (dataset=raw/sqlserver_test_watermark_append_partitioned, files=1)
+2026-08-18 23:43:40,413 INFO [metro.watermark.client] Watermark atualizado (task_identifier=raw.sqlserver_test_watermark_append_partitioned, reference_column=last_update, watermark_value=2025-05-16 12:00:00, record_count=4)
+2026-08-18 23:43:40,413 INFO [metro.replication.incremental.append.max_value] Append/MaxValue concluído (task_identifier=raw.sqlserver_test_watermark_append_partitioned, rows=4, watermark=2025-05-16 12:00:00)
+2026-08-18 23:43:40,413 INFO [metro.sources.sql.sqlserver] Conexão SQL Server encerrada (runtime=stackoverflow_sql_server_database)
+2026-08-18 23:43:40,414 INFO [metro.cli.main] Replicação concluída (table=dbo.test_watermark)

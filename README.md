@@ -12,16 +12,7 @@ Não utiliza CDC, replication slots ou mensageria. Cada execução processa **um
 
 ## O que já funciona
 
-- Full Load: PostgreSQL → Local (plano ou particionado Hive)
-- Incremental Replace / Partition: PostgreSQL → Local
-- Incremental Append / MaxValue: PostgreSQL → Local (via Watermark API)
-- Escrita atômica via pasta `_tmp`
-- CLI `metro run` (YAML ou flags)
-- Configuração do motor em `metro/settings.py`
-- Secrets locais via `.env`
-- Queries em `.metro/queries/` — ou query padrão (`SELECT *`) se `query_path` não for informado
-- Logs no console e em `logs/`
-- Watermark API local em `.watermark/`
+PostgreSQL e SQL Server → Local (Full Load, Incremental Replace/Partition, Incremental Append/MaxValue). Escrita atômica via `_tmp`. CLI `metro run`.
 
 ---
 
@@ -56,23 +47,12 @@ Há duas camadas distintas:
 
 Valores padrão vivem em `metro/settings.py`. Qualquer um pode ser sobrescrito por variável de ambiente com prefixo `METRO_`:
 
-```env
-METRO_SECRET_PROVIDER=local
-METRO_LOG_LEVEL=INFO
-METRO_LOG_DIR=./logs
-# METRO_LOG_FILE=./logs/custom.log
-METRO_WATERMARK_API_URL=http://localhost:8000
-METRO_WATERMARK_API_TIMEOUT=10
-METRO_QUERY_REPOSITORY_BASE_DIR=./.metro/queries
-METRO_LOCAL_STORAGE_BASE_PATH=./local
-```
-
 | Variável | Descrição | Default |
 | --- | --- | --- |
 | `METRO_SECRET_PROVIDER` | Provider de secrets (`local` por enquanto) | `local` |
 | `METRO_LOG_LEVEL` | Nível de log | `INFO` |
 | `METRO_LOG_DIR` | Diretório de logs | `logs` |
-| `METRO_LOG_FILE` | Arquivo de log (se omitido, gera `logs/<task>_<timestamp>.log`) | — |
+| `METRO_LOG_FILE` | Arquivo de log (se omitido, gera `logs/<modo>/<task>_<timestamp>.log`) | — |
 | `METRO_WATERMARK_API_URL` | URL da API de watermark | `http://localhost:8000` |
 | `METRO_WATERMARK_API_TIMEOUT` | Timeout HTTP da API de watermark (segundos) | `10` |
 | `METRO_QUERY_REPOSITORY_BASE_DIR` | Diretório das queries | `.metro/queries` |
@@ -94,10 +74,21 @@ O `runtime` do YAML vira `METRO_<RUNTIME_EM_UPPER_SNAKE>`. Sources de banco usam
 | --- | --- |
 | `pagila_postgres_database` | `METRO_PAGILA_POSTGRES_DATABASE` |
 | `stackoverflow_postgres_database` | `METRO_STACKOVERFLOW_POSTGRES_DATABASE` |
+| `stackoverflow_sql_server_database` | `METRO_STACKOVERFLOW_SQL_SERVER_DATABASE` |
 | `development_storage` | `METRO_DEVELOPMENT_STORAGE_BASE_PATH` |
 | *(API watermark)* | `METRO_WATERMARK_POSTGRES_DATABASE` |
 
 `METRO_WATERMARK_POSTGRES_DATABASE` é conexão do **serviço** da Watermark API (`.watermark/`), não um secret de task do motor.
+
+### Connection String SQL Server
+
+O SQL Server usa a biblioteca oficial `mssql-python`, que requer connection strings no formato:
+
+```env
+METRO_STACKOVERFLOW_SQL_SERVER_DATABASE="Server=localhost;Database=StackOverflow2010;UID=sa;PWD=senha;TrustServerCertificate=yes;Encrypt=yes;"
+```
+
+**Importante**: Não inclua `Driver={...}` na connection string — o `mssql-python` gerencia drivers automaticamente. Aliases ADO.NET (`User Id`, `Password`, `True`/`False`) também são aceitos.
 
 ---
 
@@ -123,6 +114,7 @@ tasks/
 | --- | --- |
 | `tasks/full_load/pagila_actor.yaml` | Full Load |
 | `tasks/full_load/pagila_film_full_partition.yaml` | Full Load particionado |
+| `tasks/full_load/sqlserver_comments.yaml` | Full Load (SQL Server) |
 | `tasks/incremental_replace/pagila_film_replace.yaml` | Incremental Replace |
 | `tasks/incremental_append/stackoverflow_posts_append.yaml` | Incremental Append |
 

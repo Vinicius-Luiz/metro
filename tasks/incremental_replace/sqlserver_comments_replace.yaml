@@ -1,0 +1,24 @@
+table:
+  schema_name: dbo
+  name: Comments
+  target_schema_name: raw
+  target_name: sqlserver_comments
+
+source:
+  type: sqlserver
+  runtime: stackoverflow_sql_server_database
+  chunk_size: 50000
+
+target:
+  type: local
+  runtime: development_storage
+  chunk_size: 200000
+
+replication:
+  mode: incremental
+  strategy:
+    type: replace
+    reference_column: CreationDate
+    lookback_periods: 19
+    partition:
+      type: year

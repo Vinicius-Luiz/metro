@@ -1,0 +1,22 @@
+table:
+  schema_name: dbo
+  name: test_watermark
+  target_schema_name: raw
+  target_name: sqlserver_test_watermark_append_partitioned
+
+source:
+  type: sqlserver
+  runtime: stackoverflow_sql_server_database
+
+target:
+  type: local
+  runtime: development_storage
+
+replication:
+  mode: incremental
+  strategy:
+    type: append
+    reference_column: last_update
+    partition:
+      type: year
+      reference_column: last_update

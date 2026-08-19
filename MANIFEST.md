@@ -133,38 +133,15 @@ Particionamento Hive (`year` / `month` / `day`) é opcional no Full Load e no Ap
 
 ## Full Load
 
-Ingestão completa do dataset. Particionamento opcional em `replication.partition`:
-
-```yaml
-replication:
-  mode: full_load
-  partition:
-    type: month
-    reference_column: order_date
-```
+Ingestão completa do dataset. Particionamento opcional em `replication.partition`.
 
 ## Incremental — Append / MaxValue
 
-Usa o maior valor da coluna de referência (`MAX(reference_column)`) como watermark.
-
-```yaml
-replication:
-  mode: incremental
-  strategy:
-    type: append
-    reference_column: updated_at
-```
-
-- Primeira execução (sem watermark): extrai o dataset completo e cria o watermark inicial.
-- Execuções seguintes: filtra `reference_column > watermark` e acrescenta os novos dados.
-- O watermark só é atualizado depois do commit no Target.
-- Particionamento Hive é opcional (`strategy.partition`).
-
-Pré-requisito: Watermark API no ar e `--watermark-api-url`.
+Usa o maior valor da coluna de referência (`MAX(reference_column)`) como watermark. Sem watermark, extrai o dataset completo e cria o valor inicial; nas execuções seguintes filtra `reference_column > watermark`. O watermark só atualiza depois do commit no Target. Hive é opcional (`strategy.partition`). Depende da Watermark API no ar.
 
 ## Incremental — Replace / Partition
 
-Reconstrói partições inteiras (Hive-style), não a tabela toda.
+Reconstrói partições inteiras (Hive-style), não a tabela toda. `lookback_periods` define quantas partições recentes o Target remove e regrava.
 
 ```yaml
 replication:
@@ -176,8 +153,6 @@ replication:
     partition:
       type: year
 ```
-
-`lookback_periods` define quantas partições recentes serão substituídas. O Target remove os objetos da partição e grava o Parquet novo.
 
 # Watermark
 
@@ -215,15 +190,15 @@ runtime: customer_postgres_database
 
 ```text
 metro/
-├── core/          task, table, column, endpoint, execution
-├── sources/       sql (postgresql, sqlserver, oracle) e nosql (mongodb)
-├── targets/       s3, local
+├── core/          task, table, metadata, endpoint
+├── sources/       sql (postgresql, sqlserver; oracle futuro) e nosql (mongodb futuro)
+├── targets/       local (s3 futuro)
 ├── replication/   full_load, incremental/append, incremental/replace
 │                  partitioning e writer (Hive compartilhado)
 ├── watermark/     client HTTP
-├── queries/       local, s3
-├── parquet/
-├── logging/
+├── queries/       local (s3 futuro)
+├── secrets/       local (aws futuro)
+├── settings.py
 └── cli/
 ```
 
@@ -249,7 +224,7 @@ metro/
 ## Sources
 
 - [x] PostgreSQL
-- [ ] SQL Server
+- [x] SQL Server
 - [ ] Oracle
 - [ ] MongoDB
 
@@ -271,4 +246,4 @@ metro/
 
 # Status
 
-Fluxos funcionais hoje: **PostgreSQL → Local** (Full Load, Incremental Replace/Partition e Incremental Append/MaxValue), via CLI `metro run`.
+Fluxos funcionais hoje: **PostgreSQL → Local** e **SQL Server → Local** (Full Load, Incremental Replace/Partition e Incremental Append/MaxValue), via CLI `metro run`.
