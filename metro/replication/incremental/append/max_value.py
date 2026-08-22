@@ -111,6 +111,7 @@ class AppendMaxValueStrategy(ReplicationStrategy):
                     previous_watermark,
                 )
                 target.discard_staging(dataset_path)
+                self._rows_processed = 0
                 return
 
             logger.info(
@@ -142,6 +143,7 @@ class AppendMaxValueStrategy(ReplicationStrategy):
                     record_count=record_count,
                 )
 
+            self._rows_processed = record_count
             logger.info(
                 "Append/MaxValue concluído (task_identifier=%s, rows=%s, "
                 "watermark=%s)",

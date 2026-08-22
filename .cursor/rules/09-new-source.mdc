@@ -1,0 +1,39 @@
+---
+description: Etapas para implementar um novo Source Endpoint no METRO
+globs: "**/sources/**/*.py,**/cli/main.py"
+alwaysApply: false
+---
+
+# Novo Source Endpoint
+
+Implemente em fases, na ordem. Não antecipe fases seguintes. Use PostgreSQL/SQL Server como referência. Não altere a interface `SourceEndpoint` sem necessidade. Prefira a biblioteca oficial da tecnologia.
+
+## Parte 1 — Core básico
+
+- Arquivo do endpoint (ex.: `metro/sources/sql/<tech>.py`)
+- `connect` / `disconnect`
+- `read` simples (sem paginação)
+- Mapeamento básico de tipos para Polars
+- Dependência no `pyproject.toml`
+
+## Parte 2 — Query e metadata
+
+- `build_default_query()` (SQL: via `information_schema` ou equivalente)
+- `_quote_ident` (SQL) ou equivalente da tecnologia
+- Logging completo (ciclo de vida, parâmetros, falhas — sem secrets)
+
+## Parte 3 — Incremental e paginação
+
+- `apply_lower_bound`
+- `read_batches` com `chunk_size` do YAML
+- Cursor server-side quando a tecnologia permitir
+
+## Parte 4 — Integração
+
+- Registro no CLI (`source.type`)
+- Exports nos `__init__.py`
+- Documentação
+
+## Parte 5 — Validação
+
+Validação end-to-end manual (execução real, contrato YAML, revisão). Não crie testes Python.

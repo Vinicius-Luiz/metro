@@ -9,13 +9,11 @@ O METRO é um motor de **Full Load e Incremental Load** orientado à materializa
 - Python e Polars no core; Parquet na persistência.
 - Sources SQL e NoSQL; Targets iniciais Local e S3.
 - Dois modos: Full Load e Incremental (Append/MaxValue ou Replace/Partition).
-- Sem banco auxiliar no METRO. Watermark e secrets vêm de providers externos.
+- Sem banco auxiliar no METRO. Watermark, logging de execução e secrets vêm de providers/APIs externas.
 - Queries fora do YAML. Source extrai e prepara; o METRO replica e materializa.
 - Execução local no desenvolvimento; Docker/ECS só como empacotamento, não como requisito do core.
 
----
-
-# Fluxo de Execução
+## Fluxo de Execução
 
 ```mermaid
 flowchart TD
@@ -50,9 +48,7 @@ flowchart TD
     Target --> Storage[Target Storage]
 ```
 
----
-
-# Source Endpoints
+## Source Endpoints
 
 O METRO é projetado para **SGBDs SQL e NoSQL** como fontes:
 
@@ -66,7 +62,7 @@ O Source é responsável por conexão, autenticação, execução da consulta, p
 
 O core não interpreta a estrutura de um documento NoSQL. Transformações específicas da fonte (SQL ou aggregation pipeline) acontecem na consulta, antes dos dados chegarem ao METRO.
 
-# Target Endpoints
+## Target Endpoints
 
 O Target materializa os dados. A primeira versão:
 
@@ -78,7 +74,7 @@ Target Endpoint
 
 Outros storages podem ser adicionados sem alterar o core. Persistência: **Parquet**. Escrita atômica via pasta `_tmp` — o dataset só é promovido ao final.
 
-# Polars
+## Polars
 
 Polars é o núcleo de representação e processamento. O fluxo conceitual:
 
@@ -86,7 +82,7 @@ Polars é o núcleo de representação e processamento. O fluxo conceitual:
 Source → Source Data → Polars DataFrame → Replication → Parquet
 ```
 
-# Table
+## Table
 
 `Table` é identidade e metadados do dataset — não a representação física de cada registro. Metadados de colunas ficam a cargo do Source (ex.: `information_schema` em SQL). Em NoSQL, `name` pode representar uma collection.
 
@@ -98,7 +94,7 @@ Table
 └── target_name
 ```
 
-# Query Path
+## Query Path
 
 O YAML referencia a consulta; o conteúdo fica no Query Repository.
 
@@ -115,7 +111,7 @@ YAML (query_path) → Query Repository (Local | S3) → arquivo → Source Endpo
 
 Onde as queries são armazenadas é configuração do METRO, não da tarefa. Isso permite `.sql` / `.js` fora do contrato e deixa o core agnóstico ao modelo da fonte. Sem `query_path`, o Source monta a query padrão da tecnologia.
 
-# Replication Strategies
+## Replication Strategies
 
 Dois modos. O método incremental é implícito pelo `type` — não existe campo `method` no YAML.
 
@@ -127,19 +123,20 @@ Replication
     └── Replace → Partition
 ```
 
-Particionamento Hive (`year` / `month` / `day`) é opcional no Full Load e no Append, e **obrigatório** no Replace.
+Particionamento Hive (`year` / `month` / `day`) fica sempre em `replication.partition`:
+opcional no Full Load e no Append, e **obrigatório** no Replace.
 
-## Full Load
+### Full Load
 
 Ingestão completa do dataset. Particionamento opcional em `replication.partition`.
 
-## Incremental — Append / MaxValue
+### Incremental — Append / MaxValue
 
-Usa o maior valor da coluna de referência (`MAX(reference_column)`) como watermark. Sem watermark, extrai o dataset completo e cria o valor inicial; nas execuções seguintes filtra `reference_column > watermark`. O watermark só atualiza depois do commit no Target. Hive é opcional (`strategy.partition`). Depende da Watermark API no ar.
+Usa o maior valor da coluna de referência (`MAX(reference_column)`) como watermark. Sem watermark, extrai o dataset completo e cria o valor inicial; nas execuções seguintes filtra `reference_column > watermark`. O watermark só atualiza depois do commit no Target. Hive é opcional (`replication.partition`). Depende da Watermark API no ar.
 
-## Incremental — Replace / Partition
+### Incremental — Replace / Partition
 
-Reconstrói partições inteiras (Hive-style), não a tabela toda. `lookback_periods` define quantas partições recentes o Target remove e regrava.
+Reconstrói partições inteiras (Hive-style), não a tabela toda. `lookback_periods` define quantas partições recentes o Target remove e regrava. Exige `replication.partition`.
 
 ```yaml
 replication:
@@ -148,11 +145,12 @@ replication:
     type: replace
     reference_column: created_at
     lookback_periods: 3
-    partition:
-      type: year
+  partition:
+    type: year
+    reference_column: created_at
 ```
 
-# Watermark
+## Watermark
 
 O METRO não tem banco auxiliar. O estado do Append vem de uma **API HTTP externa**, via `WatermarkClient`:
 
@@ -160,9 +158,19 @@ O METRO não tem banco auxiliar. O estado do Append vem de uma **API HTTP extern
 METRO → WatermarkClient (HTTP) → Watermark API → PostgreSQL (infra do serviço)
 ```
 
-No desenvolvimento local a API vive em `.watermark/`.
+No desenvolvimento local a API vive em `.watermark/`. Controlada por `watermark_enabled` em `metro/settings.py`. Setup operacional: [`.watermark/README.md`](.watermark/README.md).
 
-# Runtime e Secret Provider
+## Logging de execução
+
+Cada `metro run` pode registrar **1 linha** em uma **API HTTP externa**, via `LoggingClient` / `ExecutionLogger`. Os parâmetros da task são colunas (sem JSON). Console e arquivo de log continuam sempre ativos.
+
+```text
+METRO → ExecutionLogger → LoggingClient (HTTP) → Logging API → PostgreSQL
+```
+
+No desenvolvimento local a API vive em `.logging/`. Controlada por `logging_enabled` em `metro/settings.py`. Setup operacional: [`.logging/README.md`](.logging/README.md).
+
+## Runtime e Secret Provider
 
 `runtime` é a referência à configuração externa do Endpoint. Sources de banco usam `<nome>_<database_type>_database`. Credenciais não entram no YAML.
 
@@ -176,7 +184,7 @@ target:
   runtime: data_lake
 ```
 
-O provider é escolhido na inicialização (`metro run --secret-provider local|aws`), não no contrato. O mesmo YAML roda em ambientes diferentes.
+O provider é configuração do motor (`secret_provider` em `metro/settings.py`), não do contrato. O mesmo YAML roda em ambientes diferentes.
 
 ```text
 runtime: customer_postgres_database
@@ -184,7 +192,7 @@ runtime: customer_postgres_database
         → Secret externo
 ```
 
-# Estrutura Base do Projeto
+## Estrutura Base do Projeto
 
 ```text
 metro/
@@ -194,54 +202,61 @@ metro/
 ├── replication/   full_load, incremental/append, incremental/replace
 │                  partitioning e writer (Hive compartilhado)
 ├── watermark/     client HTTP
+├── logging/       client HTTP + ExecutionLogger
 ├── queries/       local (s3 futuro)
 ├── secrets/       local (aws futuro)
 ├── settings.py
 └── cli/
 ```
 
-# Roadmap
+## Roadmap
 
-## Core
+### Core
 
 - [x] Contratos do domínio (`Task`, `Table`, Endpoints, Strategy)
 - [x] `WatermarkClient`
+- [x] `LoggingClient` / `ExecutionLogger` (1 registro por execução, colunas flat)
 - [x] `SecretProvider`
 - [x] `QueryRepository`
+- [x] Settings do motor em `metro/settings.py` (sem override por env)
 
-## Data Engine
+### Data Engine
 
 - [x] Polars
 - [x] Full Load
 - [x] Incremental Append / MaxValue
 - [x] Incremental Replace / Partition
-- [x] Particionamento Hive compartilhado
+- [x] Particionamento Hive compartilhado (`replication.partition`)
 - [x] Escrita Parquet (plana e particionada)
 - [x] Escrita atômica via `_tmp`
 
-## Sources
+### Sources
 
 - [x] PostgreSQL
 - [x] SQL Server
 - [ ] Oracle
 - [ ] MongoDB
 
-## Targets
+### Targets
 
 - [x] Local
 - [ ] S3
 
-## Infraestrutura
+### Infraestrutura
 
 - [x] Secret Provider Local (`.env`)
 - [x] Query Repository Local (`.metro/queries/`)
 - [x] CLI `metro run` (1 tabela por execução)
 - [x] Logging em console + arquivo (`logs/`)
 - [x] Watermark API (local, PostgreSQL externo)
+- [x] Logging API (local, PostgreSQL externo)
+- [x] Toggles `watermark_enabled` / `logging_enabled` em settings
 - [ ] AWS Secrets Manager
 - [ ] Docker
 - [ ] Execução em AWS ECS
 
-# Status
+## Status
 
 Fluxos funcionais hoje: **PostgreSQL → Local** e **SQL Server → Local** (Full Load, Incremental Replace/Partition e Incremental Append/MaxValue), via CLI `metro run`.
+
+Infra externa validada: Watermark API (`.watermark/`, porta 8000) e Logging API (`.logging/`, porta 8001) — cada `metro run` gera 1 linha em `metro_logging.logging.executions` quando `logging_enabled=True`.

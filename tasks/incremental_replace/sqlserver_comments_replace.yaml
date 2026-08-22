@@ -20,5 +20,6 @@ replication:
     type: replace
     reference_column: CreationDate
     lookback_periods: 19
-    partition:
-      type: year
+  partition:
+    type: year
+    reference_column: CreationDate

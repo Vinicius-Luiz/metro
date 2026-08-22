@@ -10,6 +10,8 @@ from pathlib import Path
 
 from metro.core.metadata import MetadataContext
 from metro.core.task import Task, TaskValidationError
+from metro.logging.client import LoggingClient
+from metro.logging.handler import ExecutionLogger
 from metro.queries.local import LocalQueryRepository
 from metro.replication.full_load.strategy import FullLoadStrategy
 from metro.replication.incremental.append.max_value import AppendMaxValueStrategy
@@ -51,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     task_path = Path(args.task) if args.task else None
-    log_file = _configure_logging(
+    log_file, execution_logger = _configure_logging(
         task_path=task_path,
         table_name=getattr(args, "table_name", None),
     )
@@ -64,61 +66,107 @@ def main(argv: list[str] | None = None) -> int:
         else:
             logger.info("Construindo task via argumentos CLI")
             task = _build_task_from_cli(args)
-        run_task(task=task)
+        run_task(task=task, execution_logger=execution_logger)
     except Exception:
         logger.exception("Falha ao executar a task")
         return 1
     return 0
 
 
-def run_task(task: Task) -> None:
+def run_task(
+    task: Task,
+    execution_logger: ExecutionLogger | None = None,
+) -> None:
     """Executa exatamente uma task (uma tabela) por invocação."""
-    execution_timestamp = datetime.now()
-    _log_task_parameters(task)
+    if execution_logger is not None:
+        strategy = task.replication.strategy
+        partition = task.replication.partition
+        execution_logger.start(
+            schema_name=task.table.schema_name,
+            name=task.table.name,
+            target_schema_name=task.table.target_schema_name,
+            target_name=task.table.target_name,
+            mode=task.replication.mode,
+            source_type=task.source.type,
+            source_runtime=task.source.runtime,
+            target_type=task.target.type,
+            target_runtime=task.target.runtime,
+            strategy_type=None if strategy is None else strategy.type,
+            strategy_reference_column=(
+                None if strategy is None else strategy.reference_column
+            ),
+            strategy_lookback_periods=(
+                None if strategy is None else strategy.lookback_periods
+            ),
+            partition_type=None if partition is None else partition.type,
+            partition_reference_column=(
+                None if partition is None else partition.reference_column
+            ),
+        )
 
-    metadata_context = _build_metadata_context(task, execution_timestamp)
-    if metadata_context is not None:
+    rows_processed = 0
+    try:
+        execution_timestamp = datetime.now()
+        _log_task_parameters(task)
+
+        metadata_context = _build_metadata_context(task, execution_timestamp)
+        if metadata_context is not None:
+            logger.info(
+                "Metadados habilitados (source=%s, timestamp=%s)",
+                task.table.qualified_name,
+                execution_timestamp.replace(microsecond=0).isoformat(
+                    timespec="seconds"
+                ),
+            )
+
+        secret_provider = _build_secret_provider()
+        query_repository = LocalQueryRepository()
+        logger.debug("QueryRepository base_dir=%s", query_repository.base_dir)
+
+        watermark_client = None
+        needs_watermark = (
+            task.replication.mode == "incremental"
+            and task.replication.strategy is not None
+            and task.replication.strategy.type == "append"
+        )
+        if needs_watermark:
+            if not settings.watermark_enabled:
+                raise ValueError(
+                    "Watermark está desabilitado (watermark_enabled=False). "
+                    "Estratégia incremental append não está disponível."
+                )
+            watermark_client = WatermarkClient(
+                api_base_url=settings.watermark_api_url
+            )
+            logger.debug(
+                "WatermarkClient configurado com api_base_url=%s",
+                settings.watermark_api_url,
+            )
+
+        source = _build_source(task, secret_provider, query_repository)
+        target = _build_target(task, secret_provider)
+        strategy = _build_strategy(task, watermark_client, metadata_context)
+
         logger.info(
-            "Metadados habilitados (source=%s, timestamp=%s)",
+            "Iniciando replicação (table=%s, mode=%s, source=%s, target=%s)",
             task.table.qualified_name,
-            execution_timestamp.replace(microsecond=0).isoformat(timespec="seconds"),
+            task.replication.mode,
+            task.source.type,
+            task.target.type,
         )
 
-    secret_provider = _build_secret_provider()
-    query_repository = LocalQueryRepository()
-    logger.debug("QueryRepository base_dir=%s", query_repository.base_dir)
+        with source, target:
+            strategy.execute(source, target, task.table)
 
-    watermark_client = None
-    needs_watermark = (
-        task.replication.mode == "incremental"
-        and task.replication.strategy is not None
-        and task.replication.strategy.type == "append"
-    )
-    if needs_watermark:
-        watermark_client = WatermarkClient(
-            api_base_url=settings.watermark_api_url
-        )
-        logger.debug(
-            "WatermarkClient configurado com api_base_url=%s",
-            settings.watermark_api_url,
-        )
+        rows_processed = strategy.rows_processed
+        if execution_logger is not None:
+            execution_logger.finish_success(rows_processed=rows_processed)
 
-    source = _build_source(task, secret_provider, query_repository)
-    target = _build_target(task, secret_provider)
-    strategy = _build_strategy(task, watermark_client, metadata_context)
-
-    logger.info(
-        "Iniciando replicação (table=%s, mode=%s, source=%s, target=%s)",
-        task.table.qualified_name,
-        task.replication.mode,
-        task.source.type,
-        task.target.type,
-    )
-
-    with source, target:
-        strategy.execute(source, target, task.table)
-
-    logger.info("Replicação concluída (table=%s)", task.table.qualified_name)
+        logger.info("Replicação concluída (table=%s)", task.table.qualified_name)
+    except Exception:
+        if execution_logger is not None:
+            execution_logger.finish_error(rows_processed=rows_processed)
+        raise
 
 
 def _log_task_parameters(task: Task) -> None:
@@ -160,9 +208,6 @@ def _log_task_parameters(task: Task) -> None:
             "reference_column": strategy.reference_column,
             "aggregation": strategy.aggregation,
             "lookback_periods": strategy.lookback_periods,
-            "partition": None
-            if strategy.partition is None
-            else strategy.partition.model_dump(),
         },
         None
         if task.replication.partition is None
@@ -265,7 +310,7 @@ def _build_parser() -> argparse.ArgumentParser:
         replication_group,
         "--replication.partition.type",
         choices=["year", "month", "day"],
-        help="Tipo de partição para full_load",
+        help="Tipo de partição Hive (full_load, append ou replace)",
     )
     _add_task_flag(
         replication_group,
@@ -293,17 +338,6 @@ def _build_parser() -> argparse.ArgumentParser:
         replication_group,
         "--replication.strategy.aggregation",
         help="Função de agregação (apenas append, default: MAX)",
-    )
-    _add_task_flag(
-        replication_group,
-        "--replication.strategy.partition.type",
-        choices=["year", "month", "day"],
-        help="Tipo de partição da estratégia",
-    )
-    _add_task_flag(
-        replication_group,
-        "--replication.strategy.partition.reference-column",
-        help="Coluna de referência da partição da estratégia",
     )
 
     metadata_group = run_parser.add_argument_group("metadata")
@@ -392,18 +426,6 @@ def _build_nested_dict_from_args(args: argparse.Namespace) -> dict:
             strategy["lookback_periods"] = args.replication_strategy_lookback_periods
         if args.replication_strategy_aggregation:
             strategy["aggregation"] = args.replication_strategy_aggregation
-        if (
-            args.replication_strategy_partition_type
-            or args.replication_strategy_partition_reference_column
-        ):
-            strategy["partition"] = _omit_none(
-                {
-                    "type": args.replication_strategy_partition_type,
-                    "reference_column": (
-                        args.replication_strategy_partition_reference_column
-                    ),
-                }
-            )
         replication["strategy"] = strategy
 
     task_dict["replication"] = replication
@@ -463,8 +485,8 @@ def _build_task_from_cli(args: argparse.Namespace) -> Task:
 def _configure_logging(
     task_path: Path | None = None,
     table_name: str | None = None,
-) -> Path:
-    """Configura logging para console e arquivo simultaneamente."""
+) -> tuple[Path, ExecutionLogger | None]:
+    """Configura logging para console/arquivo e (opcionalmente) ExecutionLogger."""
     log_level = getattr(logging, settings.log_level)
     if settings.log_file:
         destination = settings.log_file
@@ -493,7 +515,20 @@ def _configure_logging(
     file_handler.setFormatter(formatter)
     root_logger.addHandler(file_handler)
 
-    return destination.resolve()
+    execution_logger: ExecutionLogger | None = None
+    if settings.logging_enabled and settings.logging_api_url:
+        logging_client = LoggingClient(api_base_url=settings.logging_api_url)
+        execution_logger = ExecutionLogger(client=logging_client)
+        logger.info(
+            "Execution Logger habilitado (url=%s)",
+            settings.logging_api_url,
+        )
+    elif not settings.logging_enabled:
+        logger.debug(
+            "Execution Logger desabilitado (logging_enabled=False)"
+        )
+
+    return destination.resolve(), execution_logger
 
 
 def _default_log_path(task_path: Path) -> Path:
@@ -606,11 +641,12 @@ def _build_strategy(
                 raise ValueError(
                     "watermark_client é obrigatório para Append/MaxValue"
                 )
+            partition = task.replication.partition
             partition_type = None
             partition_column = None
-            if strategy.partition is not None:
-                partition_type = strategy.partition.type
-                partition_column = strategy.partition.reference_column
+            if partition is not None:
+                partition_type = partition.type
+                partition_column = partition.reference_column
             return AppendMaxValueStrategy(
                 reference_column=strategy.reference_column,
                 watermark_client=watermark_client,
@@ -620,14 +656,15 @@ def _build_strategy(
                 metadata_context=metadata_context,
             )
         if strategy.type == "replace":
-            if strategy.partition is None or strategy.lookback_periods is None:
+            partition = task.replication.partition
+            if partition is None or strategy.lookback_periods is None:
                 raise ValueError(
-                    "replace/partition exige strategy.partition e "
+                    "replace/partition exige replication.partition e "
                     "strategy.lookback_periods"
                 )
             return ReplacePartitionStrategy(
                 reference_column=strategy.reference_column,
-                granularity=strategy.partition.type,
+                granularity=partition.type,
                 lookback_periods=strategy.lookback_periods,
                 metadata_context=metadata_context,
             )

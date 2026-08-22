@@ -44,18 +44,22 @@ Há duas camadas distintas:
 
 ### Settings do METRO
 
-Valores padrão vivem em `metro/settings.py`. Em runtime (ECS, Docker, shell) podem ser sobrescritos por variáveis de ambiente do **processo** com prefixo `METRO_`. Não coloque essas variáveis no `.env`:
+Valores padrão vivem em `metro/settings.py` e devem ser alterados **editando esse arquivo**. Não são sobrescritos por variáveis de ambiente.
 
-| Variável | Descrição | Default |
+| Parâmetro | Descrição | Default |
 | --- | --- | --- |
-| `METRO_SECRET_PROVIDER` | Provider de secrets (`local` por enquanto) | `local` |
-| `METRO_LOG_LEVEL` | Nível de log | `INFO` |
-| `METRO_LOG_DIR` | Diretório de logs | `logs` |
-| `METRO_LOG_FILE` | Arquivo de log (se omitido, gera `logs/<modo>/<task>_<timestamp>.log`) | — |
-| `METRO_WATERMARK_API_URL` | URL da API de watermark | `http://localhost:8000` |
-| `METRO_WATERMARK_API_TIMEOUT` | Timeout HTTP da API de watermark (segundos) | `10` |
-| `METRO_QUERY_REPOSITORY_BASE_DIR` | Diretório das queries | `.metro/queries` |
-| `METRO_LOCAL_STORAGE_BASE_PATH` | Fallback do Target Local quando o secret não informa `base_path` | `./local` |
+| `secret_provider` | Provider de secrets (`local` por enquanto) | `local` |
+| `log_level` | Nível de log | `INFO` |
+| `log_dir` | Diretório de logs | `logs` |
+| `log_file` | Arquivo de log (se omitido, gera `logs/<modo>/<task>_<timestamp>.log`) | — |
+| `logging_enabled` | Habilitar envio de logs para a Logging API | `True` |
+| `logging_api_url` | URL da API de logging | `http://localhost:8001` |
+| `logging_api_timeout` | Timeout HTTP da API de logging (segundos) | `10` |
+| `watermark_enabled` | Habilitar watermark (necessário para incremental append) | `True` |
+| `watermark_api_url` | URL da API de watermark | `http://localhost:8000` |
+| `watermark_api_timeout` | Timeout HTTP da API de watermark (segundos) | `10` |
+| `query_repository_base_dir` | Diretório das queries | `.metro/queries` |
+| `local_storage_base_path` | Fallback do Target Local quando o secret não informa `base_path` | `./local` |
 
 ### Secrets (`.env`)
 
@@ -67,6 +71,7 @@ Crie um `.env` na raiz (não versionado). Modelo em `example.env`:
 METRO_PAGILA_POSTGRES_DATABASE="postgresql://user:password@localhost:5432/pagila"
 METRO_DEVELOPMENT_STORAGE_BASE_PATH="./local"
 METRO_WATERMARK_DATABASE="postgresql://user:password@localhost:5432/metro_watermark"
+METRO_LOGGING_DATABASE="postgresql://user:password@localhost:5432/metro_logging"
 ```
 
 O `runtime` do YAML vira `METRO_<RUNTIME_EM_UPPER_SNAKE>`. Sources de banco usam o padrão `<nome>_<database_type>_database`.
@@ -78,8 +83,9 @@ O `runtime` do YAML vira `METRO_<RUNTIME_EM_UPPER_SNAKE>`. Sources de banco usam
 | `stackoverflow_sql_server_database` | `METRO_STACKOVERFLOW_SQL_SERVER_DATABASE` |
 | `development_storage` | `METRO_DEVELOPMENT_STORAGE_BASE_PATH` |
 | *(API watermark)* | `METRO_WATERMARK_DATABASE` |
+| *(API logging)* | `METRO_LOGGING_DATABASE` |
 
-`METRO_WATERMARK_DATABASE` é conexão do **serviço** da Watermark API (`.watermark/`), não um secret de task do motor.
+`METRO_WATERMARK_DATABASE` e `METRO_LOGGING_DATABASE` são conexões dos **serviços** (`.watermark/` e `.logging/`), não secrets de task do motor.
 
 ---
 
@@ -88,8 +94,8 @@ O `runtime` do YAML vira `METRO_<RUNTIME_EM_UPPER_SNAKE>`. Sources de banco usam
 Uma task por comando. O contrato vem de um YAML:
 
 ```powershell
-metro run tasks/full_load/pagila_actor.yaml
-metro run tasks/full_load/pagila_film_full_partition.yaml
+metro run tasks/full_load/postgresql_pagila_actor.yaml
+metro run tasks/full_load/sqlserver_comments.yaml
 ```
 
 YAMLs de exemplo:
@@ -103,13 +109,13 @@ tasks/
 
 | Task | Modo |
 | --- | --- |
-| `tasks/full_load/pagila_actor.yaml` | Full Load |
-| `tasks/full_load/pagila_film_full_partition.yaml` | Full Load particionado |
+| `tasks/full_load/postgresql_pagila_actor.yaml` | Full Load |
+| `tasks/full_load/postgresql_stackoverflow_votes_partition.yaml` | Full Load particionado |
 | `tasks/full_load/sqlserver_comments.yaml` | Full Load (SQL Server) |
-| `tasks/incremental_replace/pagila_film_replace.yaml` | Incremental Replace |
-| `tasks/incremental_append/stackoverflow_posts_append.yaml` | Incremental Append |
+| `tasks/incremental_replace/sqlserver_comments_replace.yaml` | Incremental Replace |
+| `tasks/incremental_append/postgresql_stackoverflow_posts_append.yaml` | Incremental Append |
 
-**Append** precisa da Watermark API no ar — setup em [`.watermark/README.md`](.watermark/README.md). Logging e URL da API vêm de `metro/settings.py` (ou das variáveis de ambiente do processo `METRO_*` correspondentes, nunca do `.env`).
+**Append** precisa da Watermark API no ar e `watermark_enabled=True` em `metro/settings.py` — setup em [`.watermark/README.md`](.watermark/README.md). Logging PostgreSQL exige `logging_enabled=True` e a Logging API — setup em [`.logging/README.md`](.logging/README.md).
 
 ---
 
@@ -135,7 +141,7 @@ replication:
   mode: full_load          # full_load | incremental
 ```
 
-Incremental **Replace** exige `strategy` com `type: replace`, `reference_column`, `lookback_periods` e `partition`. Incremental **Append** exige `strategy` com `type: append` e `reference_column`. Contratos completos estão em `tasks/`.
+Incremental **Replace** exige `strategy` (`type: replace`, `reference_column`, `lookback_periods`) e `replication.partition`. Incremental **Append** exige `strategy` com `type: append` e `reference_column`; `replication.partition` é opcional. Contratos completos estão em `tasks/`.
 
 ---
 

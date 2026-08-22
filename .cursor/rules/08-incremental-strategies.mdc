@@ -17,18 +17,19 @@ implementando apenas um método por tipo de estratégia.
 - **Único método**: Partition (particionamento temporal Hive-style)
 - **Premissa**: Replace sempre substitui partições completas baseadas em
   data/tempo
-- **Configuração**: Requer `partition.type` (year/month/day),
-  `reference_column` e `lookback_periods`
+- **Configuração**: Requer `replication.partition` (`type` year/month/day e
+  `reference_column`), além de `reference_column` e `lookback_periods` na strategy
 - **Não há**: Métodos alternativos de replace (full table replace,
   window replace, etc.)
 
-### Append (type: append) - Futuro
+### Append (type: append)
 
 - **Único método**: MaxValue (append incremental baseado em valor máximo)
 - **Premissa**: Append sempre usará o valor máximo da coluna de referência
   como watermark
-- **Configuração prevista**: Requer `reference_column` e opcionalmente
-  `aggregation` (MAX padrão)
+- **Configuração**: Requer `reference_column` e opcionalmente
+  `aggregation` (MAX padrão). Particionamento Hive opcional via
+  `replication.partition`
 - **Não haverá**: Outros métodos de append (CDC, timestamp-based com janela,
   etc.)
 
@@ -43,7 +44,8 @@ Esta simplificação:
 
 ## Contrato YAML
 
-O campo `method` não existe no contrato. O método é implícito por tipo:
+O campo `method` não existe no contrato. O método é implícito por tipo.
+`partition` fica sempre em `replication.partition` (obrigatório só para replace).
 
 ```yaml
 # Replace (método partition implícito)
@@ -53,14 +55,25 @@ replication:
     type: replace
     reference_column: last_update
     lookback_periods: 3
-    partition:
-      type: year
+  partition:
+    type: year
+    reference_column: last_update
 
-# Append futuro (método max_value implícito)
+# Append sem partition
 replication:
   mode: incremental
   strategy:
     type: append
+    reference_column: created_at
+
+# Append com partition
+replication:
+  mode: incremental
+  strategy:
+    type: append
+    reference_column: created_at
+  partition:
+    type: year
     reference_column: created_at
 ```
 

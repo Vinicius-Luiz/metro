@@ -63,7 +63,7 @@ class TargetConfig(BaseModel):
 
 
 class PartitionConfig(BaseModel):
-    """Configuração de partição Hive (Full Load opcional ou Replace)."""
+    """Configuração de partição Hive (opcional em full_load/append; obrigatório em replace)."""
 
     type: str = Field(..., min_length=1)
     reference_column: str | None = Field(default=None, min_length=1)
@@ -85,23 +85,17 @@ class StrategyConfig(BaseModel):
     """Configuração da estratégia incremental.
 
     O método é implícito pelo type: replace → partition; append → max_value.
-    
-    Append pode ter particionamento opcional (Hive-style), mas não usa lookback.
+    Particionamento Hive fica em `replication.partition`, não aqui.
     """
 
     type: Literal["append", "replace"]
     reference_column: str = Field(..., min_length=1)
     aggregation: str | None = None
     lookback_periods: int | None = Field(default=None, gt=0)
-    partition: PartitionConfig | None = None
 
     @model_validator(mode="after")
     def validate_strategy_shape(self) -> StrategyConfig:
-        """Garante campos obrigatórios de `replace` (partition e lookback)."""
-        if self.type == "replace" and self.partition is None:
-            raise TaskValidationError(
-                "strategy.partition é obrigatório quando type='replace'"
-            )
+        """Garante campos obrigatórios de `replace` (lookback)."""
         if self.type == "replace" and self.lookback_periods is None:
             raise TaskValidationError(
                 "strategy.lookback_periods é obrigatório quando type='replace'"
@@ -131,22 +125,22 @@ class ReplicationConfig(BaseModel):
             raise TaskValidationError(
                 "replication.strategy não deve ser informado quando mode='full_load'"
             )
-        if self.mode == "incremental" and self.partition is not None:
-            raise TaskValidationError(
-                "replication.partition não deve ser informado quando "
-                "mode='incremental' (use strategy.partition)"
-            )
         if (
-            self.mode == "full_load"
-            and self.partition is not None
-            and (
-                self.partition.reference_column is None
-                or not self.partition.reference_column.strip()
+            self.mode == "incremental"
+            and self.strategy is not None
+            and self.strategy.type == "replace"
+            and self.partition is None
+        ):
+            raise TaskValidationError(
+                "replication.partition é obrigatório quando strategy.type='replace'"
             )
+        if self.partition is not None and (
+            self.partition.reference_column is None
+            or not self.partition.reference_column.strip()
         ):
             raise TaskValidationError(
                 "replication.partition.reference_column é obrigatório "
-                "quando partition está informado no full_load"
+                "quando partition está informado"
             )
         return self
 

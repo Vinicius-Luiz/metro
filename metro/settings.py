@@ -1,7 +1,7 @@
 """Configurações de infraestrutura do METRO.
 
-Valores padrão vivem neste módulo. Podem ser sobrescritos por variáveis de
-ambiente do processo com prefixo `METRO_` (ex.: ECS, Docker, shell).
+Valores padrão vivem neste módulo e devem ser alterados editando este arquivo.
+Não são sobrescritáveis por variáveis de ambiente.
 
 O arquivo `.env` não é lido aqui: ele guarda somente credenciais do Secret
 Provider (connection strings e secrets de runtime).
@@ -12,20 +12,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel, Field
 
 
-class MetroSettings(BaseSettings):
-    """Configurações globais do motor (não são secrets de task)."""
+class MetroSettings(BaseModel):
+    """Configurações globais do motor (não são secrets de task).
 
-    model_config = SettingsConfigDict(
-        env_prefix="METRO_",
-        env_file=None,
-        env_ignore_empty=True,
-        extra="ignore",
-        case_sensitive=False,
-    )
+    Edite este arquivo diretamente para alterar configurações.
+    Não use variáveis de ambiente.
+    """
 
     # Secret Provider
     # Provider de secrets (local por enquanto)
@@ -39,7 +34,17 @@ class MetroSettings(BaseSettings):
     # Arquivo de log; se omitido: logs/<modo>/<task>_<timestamp>.log
     log_file: Path | None = None
 
+    # Logging Database API (opcional)
+    # Habilitar envio de logs para API PostgreSQL
+    logging_enabled: bool = True
+    # URL base da API de logging (porta 8001; watermark usa 8000)
+    logging_api_url: str | None = "http://localhost:8001"
+    # Timeout HTTP em segundos
+    logging_api_timeout: int = Field(default=10, gt=0)
+
     # Watermark API
+    # Habilitar watermark para estratégias incrementais append
+    watermark_enabled: bool = True
     # URL base da API de watermark
     watermark_api_url: str = "http://localhost:8000"
     # Timeout HTTP em segundos

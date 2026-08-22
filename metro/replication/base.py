@@ -32,6 +32,12 @@ class ReplicationStrategy(ABC):
         self._reference_column = reference_column
         self._aggregation = aggregation
         self._partition_type = partition_type
+        self._rows_processed = 0
+
+    @property
+    def rows_processed(self) -> int:
+        """Total de linhas processadas na última execução."""
+        return self._rows_processed
 
     @property
     def mode(self) -> str:

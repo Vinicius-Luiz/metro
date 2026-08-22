@@ -1,0 +1,165 @@
+2026-08-22 00:41:59,967 INFO [metro.cli.main] Execution Logger habilitado (url=http://localhost:8001)
+2026-08-22 00:41:59,968 INFO [metro.cli.main] Arquivo de log: C:\Users\Vinicius Luiz\Desktop\Scripts\metro\logs\full_load\postgresql_stackoverflow_votes_partition_20260822_004159.log
+2026-08-22 00:41:59,968 INFO [metro.cli.main] Carregando task do YAML: tasks\full_load\postgresql_stackoverflow_votes_partition.yaml
+2026-08-22 00:42:02,085 INFO [metro.logging.handler] Execução registrada (id=3, table=public.votes -> raw/stackoverflow_votes)
+2026-08-22 00:42:02,085 INFO [metro.cli.main] Metadados habilitados (source=public.votes, timestamp=2026-08-22T00:42:02)
+2026-08-22 00:42:02,087 INFO [metro.cli.main] Iniciando replicação (table=public.votes, mode=full_load, source=postgresql, target=local)
+2026-08-22 00:42:02,087 INFO [metro.sources.sql.postgresql] Conectando ao PostgreSQL (runtime=stackoverflow_postgres_database)
+2026-08-22 00:42:02,163 INFO [metro.targets.local] LocalTarget pronto (runtime=development_storage, base_path=local)
+2026-08-22 00:42:02,164 INFO [metro.targets.local] Staging iniciado: local\raw\stackoverflow_votes\_tmp
+2026-08-22 00:42:02,165 INFO [metro.replication.full_load.strategy] Iniciando Full Load particionado (table=public.votes, path=raw/stackoverflow_votes, column=creationdate, granularity=year)
+2026-08-22 00:42:02,168 INFO [metro.sources.sql.postgresql] Query padrão montada para public.votes (6 colunas)
+2026-08-22 00:42:02,168 INFO [metro.sources.sql.postgresql] Lendo PostgreSQL em batches (runtime=stackoverflow_postgres_database, chunk_size=50000)
+2026-08-22 00:42:02,470 INFO [metro.replication.writer] Materializando parte 1 (path=raw/stackoverflow_votes/_tmp/year=2008/part_0001.parquet, rows=200000)
+2026-08-22 00:42:02,471 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2008\part_0001.parquet
+2026-08-22 00:42:02,499 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=176.5 | memory_after_mb=176.5 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:02,768 INFO [metro.replication.writer] Materializando parte 2 (path=raw/stackoverflow_votes/_tmp/year=2008/part_0002.parquet, rows=200000)
+2026-08-22 00:42:02,769 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2008\part_0002.parquet
+2026-08-22 00:42:02,797 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=225.4 | memory_after_mb=225.4 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:03,046 INFO [metro.replication.writer] Materializando parte 3 (path=raw/stackoverflow_votes/_tmp/year=2008/part_0003.parquet, rows=200000)
+2026-08-22 00:42:03,047 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2008\part_0003.parquet
+2026-08-22 00:42:03,071 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=240.1 | memory_after_mb=240.1 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:03,455 INFO [metro.replication.writer] Materializando parte 4 (path=raw/stackoverflow_votes/_tmp/year=2008/part_0004.parquet, rows=200000)
+2026-08-22 00:42:03,455 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2008\part_0004.parquet
+2026-08-22 00:42:03,482 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=249.8 | memory_after_mb=249.8 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:03,930 INFO [metro.replication.writer] Materializando parte 1 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0001.parquet, rows=200000)
+2026-08-22 00:42:03,931 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0001.parquet
+2026-08-22 00:42:03,961 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=284.2 | memory_after_mb=284.2 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:04,206 INFO [metro.replication.writer] Materializando parte 2 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0002.parquet, rows=200000)
+2026-08-22 00:42:04,207 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0002.parquet
+2026-08-22 00:42:04,237 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=296.5 | memory_after_mb=296.5 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:04,507 INFO [metro.replication.writer] Materializando parte 3 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0003.parquet, rows=200000)
+2026-08-22 00:42:04,508 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0003.parquet
+2026-08-22 00:42:04,540 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=306.9 | memory_after_mb=306.9 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:04,785 INFO [metro.replication.writer] Materializando parte 4 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0004.parquet, rows=200000)
+2026-08-22 00:42:04,786 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0004.parquet
+2026-08-22 00:42:04,813 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=324.1 | memory_after_mb=324.1 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:05,050 INFO [metro.replication.writer] Materializando parte 5 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0005.parquet, rows=200000)
+2026-08-22 00:42:05,051 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0005.parquet
+2026-08-22 00:42:05,078 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=331.5 | memory_after_mb=331.5 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:05,422 INFO [metro.replication.writer] Materializando parte 6 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0006.parquet, rows=200000)
+2026-08-22 00:42:05,423 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0006.parquet
+2026-08-22 00:42:05,451 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=331.1 | memory_after_mb=331.1 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:05,687 INFO [metro.replication.writer] Materializando parte 7 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0007.parquet, rows=200000)
+2026-08-22 00:42:05,687 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0007.parquet
+2026-08-22 00:42:05,712 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=342.1 | memory_after_mb=342.1 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:05,955 INFO [metro.replication.writer] Materializando parte 8 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0008.parquet, rows=200000)
+2026-08-22 00:42:05,956 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0008.parquet
+2026-08-22 00:42:05,984 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=345.7 | memory_after_mb=345.7 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:06,297 INFO [metro.replication.writer] Materializando parte 9 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0009.parquet, rows=200000)
+2026-08-22 00:42:06,297 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0009.parquet
+2026-08-22 00:42:06,327 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=361.9 | memory_after_mb=361.9 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:06,573 INFO [metro.replication.writer] Materializando parte 10 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0010.parquet, rows=200000)
+2026-08-22 00:42:06,574 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0010.parquet
+2026-08-22 00:42:06,603 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=345.1 | memory_after_mb=345.1 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:06,847 INFO [metro.replication.writer] Materializando parte 11 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0011.parquet, rows=200000)
+2026-08-22 00:42:06,848 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0011.parquet
+2026-08-22 00:42:06,871 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=357.3 | memory_after_mb=357.3 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:07,116 INFO [metro.replication.writer] Materializando parte 12 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0012.parquet, rows=200000)
+2026-08-22 00:42:07,116 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0012.parquet
+2026-08-22 00:42:07,145 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=359.9 | memory_after_mb=359.9 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:07,471 INFO [metro.replication.writer] Materializando parte 13 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0013.parquet, rows=200000)
+2026-08-22 00:42:07,472 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0013.parquet
+2026-08-22 00:42:07,503 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=358.4 | memory_after_mb=358.4 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:07,741 INFO [metro.replication.writer] Materializando parte 14 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0014.parquet, rows=200000)
+2026-08-22 00:42:07,742 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0014.parquet
+2026-08-22 00:42:07,769 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=361.2 | memory_after_mb=361.2 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:08,007 INFO [metro.replication.writer] Materializando parte 15 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0015.parquet, rows=200000)
+2026-08-22 00:42:08,008 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0015.parquet
+2026-08-22 00:42:08,037 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=367.3 | memory_after_mb=367.3 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:08,282 INFO [metro.replication.writer] Materializando parte 16 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0016.parquet, rows=200000)
+2026-08-22 00:42:08,282 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0016.parquet
+2026-08-22 00:42:08,307 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=369.1 | memory_after_mb=369.1 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:08,631 INFO [metro.replication.writer] Materializando parte 17 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0017.parquet, rows=200000)
+2026-08-22 00:42:08,632 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0017.parquet
+2026-08-22 00:42:08,664 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=364.3 | memory_after_mb=364.3 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:08,964 INFO [metro.replication.writer] Materializando parte 1 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0001.parquet, rows=200000)
+2026-08-22 00:42:08,964 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0001.parquet
+2026-08-22 00:42:08,992 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=385.3 | memory_after_mb=385.3 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:09,239 INFO [metro.replication.writer] Materializando parte 2 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0002.parquet, rows=200000)
+2026-08-22 00:42:09,240 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0002.parquet
+2026-08-22 00:42:09,267 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=399.3 | memory_after_mb=399.3 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:09,521 INFO [metro.replication.writer] Materializando parte 3 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0003.parquet, rows=200000)
+2026-08-22 00:42:09,522 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0003.parquet
+2026-08-22 00:42:09,549 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=395.2 | memory_after_mb=395.2 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:09,846 INFO [metro.replication.writer] Materializando parte 4 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0004.parquet, rows=200000)
+2026-08-22 00:42:09,847 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0004.parquet
+2026-08-22 00:42:09,878 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=400.5 | memory_after_mb=400.5 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:10,124 INFO [metro.replication.writer] Materializando parte 5 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0005.parquet, rows=200000)
+2026-08-22 00:42:10,124 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0005.parquet
+2026-08-22 00:42:10,152 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=403.0 | memory_after_mb=403.0 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:10,403 INFO [metro.replication.writer] Materializando parte 6 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0006.parquet, rows=200000)
+2026-08-22 00:42:10,404 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0006.parquet
+2026-08-22 00:42:10,431 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=406.6 | memory_after_mb=406.6 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:10,680 INFO [metro.replication.writer] Materializando parte 7 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0007.parquet, rows=200000)
+2026-08-22 00:42:10,681 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0007.parquet
+2026-08-22 00:42:10,710 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=403.9 | memory_after_mb=403.9 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:10,989 INFO [metro.replication.writer] Materializando parte 8 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0008.parquet, rows=200000)
+2026-08-22 00:42:10,989 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0008.parquet
+2026-08-22 00:42:11,030 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=410.3 | memory_after_mb=410.3 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:11,269 INFO [metro.replication.writer] Materializando parte 9 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0009.parquet, rows=200000)
+2026-08-22 00:42:11,270 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0009.parquet
+2026-08-22 00:42:11,297 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=416.1 | memory_after_mb=416.1 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:11,536 INFO [metro.replication.writer] Materializando parte 10 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0010.parquet, rows=200000)
+2026-08-22 00:42:11,537 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0010.parquet
+2026-08-22 00:42:11,566 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=409.3 | memory_after_mb=409.3 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:11,820 INFO [metro.replication.writer] Materializando parte 11 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0011.parquet, rows=200000)
+2026-08-22 00:42:11,820 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0011.parquet
+2026-08-22 00:42:11,850 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=412.5 | memory_after_mb=412.5 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:12,086 INFO [metro.replication.writer] Materializando parte 12 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0012.parquet, rows=200000)
+2026-08-22 00:42:12,086 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0012.parquet
+2026-08-22 00:42:12,113 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=420.2 | memory_after_mb=420.2 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:12,364 INFO [metro.replication.writer] Materializando parte 13 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0013.parquet, rows=200000)
+2026-08-22 00:42:12,364 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0013.parquet
+2026-08-22 00:42:12,398 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=421.8 | memory_after_mb=421.8 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:12,688 INFO [metro.replication.writer] Materializando parte 14 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0014.parquet, rows=200000)
+2026-08-22 00:42:12,689 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0014.parquet
+2026-08-22 00:42:12,723 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=418.8 | memory_after_mb=418.8 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:12,980 INFO [metro.replication.writer] Materializando parte 15 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0015.parquet, rows=200000)
+2026-08-22 00:42:12,980 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0015.parquet
+2026-08-22 00:42:13,012 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=430.9 | memory_after_mb=430.9 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:13,256 INFO [metro.replication.writer] Materializando parte 16 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0016.parquet, rows=200000)
+2026-08-22 00:42:13,257 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0016.parquet
+2026-08-22 00:42:13,284 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=433.7 | memory_after_mb=433.7 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:13,538 INFO [metro.replication.writer] Materializando parte 17 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0017.parquet, rows=200000)
+2026-08-22 00:42:13,539 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0017.parquet
+2026-08-22 00:42:13,567 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=437.0 | memory_after_mb=437.0 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:13,812 INFO [metro.replication.writer] Materializando parte 18 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0018.parquet, rows=200000)
+2026-08-22 00:42:13,812 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0018.parquet
+2026-08-22 00:42:13,845 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=431.1 | memory_after_mb=431.1 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:14,090 INFO [metro.replication.writer] Materializando parte 19 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0019.parquet, rows=200000)
+2026-08-22 00:42:14,091 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0019.parquet
+2026-08-22 00:42:14,122 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=433.4 | memory_after_mb=433.4 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:14,385 INFO [metro.replication.writer] Materializando parte 20 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0020.parquet, rows=200000)
+2026-08-22 00:42:14,386 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0020.parquet
+2026-08-22 00:42:14,422 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=436.5 | memory_after_mb=436.5 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:14,670 INFO [metro.replication.writer] Materializando parte 21 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0021.parquet, rows=200000)
+2026-08-22 00:42:14,671 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0021.parquet
+2026-08-22 00:42:14,698 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=431.7 | memory_after_mb=431.7 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:14,938 INFO [metro.replication.writer] Materializando parte 22 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0022.parquet, rows=200000)
+2026-08-22 00:42:14,938 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0022.parquet
+2026-08-22 00:42:14,967 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=437.7 | memory_after_mb=437.7 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:15,199 INFO [metro.replication.writer] Materializando parte 23 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0023.parquet, rows=200000)
+2026-08-22 00:42:15,200 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0023.parquet
+2026-08-22 00:42:15,227 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=454.1 | memory_after_mb=454.1 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:15,479 INFO [metro.replication.writer] Materializando parte 24 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0024.parquet, rows=200000)
+2026-08-22 00:42:15,480 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0024.parquet
+2026-08-22 00:42:15,506 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=456.0 | memory_after_mb=456.0 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:15,756 INFO [metro.replication.writer] Materializando parte 25 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0025.parquet, rows=200000)
+2026-08-22 00:42:15,757 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0025.parquet
+2026-08-22 00:42:15,785 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=426.4 | memory_after_mb=426.4 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:15,929 INFO [metro.replication.writer] Materializando parte 5 (path=raw/stackoverflow_votes/_tmp/year=2008/part_0005.parquet, rows=84821)
+2026-08-22 00:42:15,930 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2008\part_0005.parquet
+2026-08-22 00:42:15,955 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=407.8 | memory_after_mb=406.8 | freed_mb=1.0 | freed_percent=0.2 | collected=0
+2026-08-22 00:42:15,957 INFO [metro.replication.writer] Materializando parte 18 (path=raw/stackoverflow_votes/_tmp/year=2009/part_0018.parquet, rows=40069)
+2026-08-22 00:42:15,957 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2009\part_0018.parquet
+2026-08-22 00:42:15,976 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=405.9 | memory_after_mb=404.9 | freed_mb=1.0 | freed_percent=0.2 | collected=0
+2026-08-22 00:42:15,978 INFO [metro.replication.writer] Materializando parte 26 (path=raw/stackoverflow_votes/_tmp/year=2010/part_0026.parquet, rows=138729)
+2026-08-22 00:42:15,978 INFO [metro.targets.local] Gravando Parquet em local\raw\stackoverflow_votes\_tmp\year=2010\part_0026.parquet
+2026-08-22 00:42:16,007 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=414.1 | memory_after_mb=414.1 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:42:16,007 INFO [metro.replication.writer] Materialização particionada concluída (rows=9463619, files=49, read_batches=190, partitions_written=3, tracked_max=N/A)
+2026-08-22 00:42:16,007 INFO [metro.replication.full_load.strategy] Full Load particionado concluído (table=public.votes, rows=9463619)
+2026-08-22 00:42:16,044 INFO [metro.targets.local] Staging commitado (dataset=raw/stackoverflow_votes)
+2026-08-22 00:42:16,044 INFO [metro.sources.sql.postgresql] Conexão PostgreSQL encerrada (runtime=stackoverflow_postgres_database)
+2026-08-22 00:42:18,161 INFO [metro.logging.handler] Execução finalizada (id=3, status=success, rows=9463619, duration=16.07s)
+2026-08-22 00:42:18,162 INFO [metro.cli.main] Replicação concluída (table=public.votes)

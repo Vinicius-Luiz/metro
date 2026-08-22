@@ -53,6 +53,6 @@ Scripts SQL em ordem:
 Tasks correspondentes:
 
 ```powershell
-metro run tasks/incremental_append/test_watermark_append.yaml --secret-provider local --watermark-api-url http://localhost:8000
-metro run tasks/incremental_append/test_watermark_append_partitioned.yaml --secret-provider local --watermark-api-url http://localhost:8000
+metro run tasks/incremental_append/sqlserver_test_watermark_append.yaml
+metro run tasks/incremental_append/postgresql_stackoverflow_posts_append.yaml
 ```

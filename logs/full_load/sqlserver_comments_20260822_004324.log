@@ -1,0 +1,78 @@
+2026-08-22 00:43:24,023 INFO [metro.cli.main] Execution Logger habilitado (url=http://localhost:8001)
+2026-08-22 00:43:24,024 INFO [metro.cli.main] Arquivo de log: C:\Users\Vinicius Luiz\Desktop\Scripts\metro\logs\full_load\sqlserver_comments_20260822_004324.log
+2026-08-22 00:43:24,025 INFO [metro.cli.main] Carregando task do YAML: tasks\full_load\sqlserver_comments.yaml
+2026-08-22 00:43:26,148 INFO [metro.logging.handler] Execução registrada (id=5, table=dbo.Comments -> raw/sqlserver_comments)
+2026-08-22 00:43:26,148 INFO [metro.cli.main] Metadados habilitados (source=dbo.Comments, timestamp=2026-08-22T00:43:26)
+2026-08-22 00:43:26,150 INFO [metro.cli.main] Iniciando replicação (table=dbo.Comments, mode=full_load, source=sqlserver, target=local)
+2026-08-22 00:43:26,150 INFO [metro.sources.sql.sqlserver] Conectando ao SQL Server (runtime=stackoverflow_sql_server_database)
+2026-08-22 00:43:26,292 INFO [metro.targets.local] LocalTarget pronto (runtime=development_storage, base_path=local)
+2026-08-22 00:43:26,293 INFO [metro.targets.local] Staging iniciado: local\raw\sqlserver_comments\_tmp
+2026-08-22 00:43:26,293 INFO [metro.replication.full_load.strategy] Iniciando Full Load em batches (table=dbo.Comments, path=raw/sqlserver_comments, source.chunk_size=50000, target.chunk_size=200000)
+2026-08-22 00:43:26,295 INFO [metro.sources.sql.sqlserver] Query padrão montada para dbo.Comments (6 colunas)
+2026-08-22 00:43:26,295 INFO [metro.sources.sql.sqlserver] Lendo SQL Server em batches (runtime=stackoverflow_sql_server_database, chunk_size=50000)
+2026-08-22 00:43:27,488 INFO [metro.replication.writer] Materializando parte 1 (path=raw/sqlserver_comments/_tmp/part_0001.parquet, rows=200000)
+2026-08-22 00:43:27,489 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0001.parquet
+2026-08-22 00:43:27,655 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=243.2 | memory_after_mb=243.2 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:28,937 INFO [metro.replication.writer] Materializando parte 2 (path=raw/sqlserver_comments/_tmp/part_0002.parquet, rows=200000)
+2026-08-22 00:43:28,937 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0002.parquet
+2026-08-22 00:43:29,089 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=284.6 | memory_after_mb=284.6 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:30,408 INFO [metro.replication.writer] Materializando parte 3 (path=raw/sqlserver_comments/_tmp/part_0003.parquet, rows=200000)
+2026-08-22 00:43:30,408 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0003.parquet
+2026-08-22 00:43:30,564 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=320.1 | memory_after_mb=320.1 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:31,837 INFO [metro.replication.writer] Materializando parte 4 (path=raw/sqlserver_comments/_tmp/part_0004.parquet, rows=200000)
+2026-08-22 00:43:31,838 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0004.parquet
+2026-08-22 00:43:32,000 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=316.3 | memory_after_mb=316.3 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:33,329 INFO [metro.replication.writer] Materializando parte 5 (path=raw/sqlserver_comments/_tmp/part_0005.parquet, rows=200000)
+2026-08-22 00:43:33,329 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0005.parquet
+2026-08-22 00:43:33,498 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=347.5 | memory_after_mb=347.5 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:34,843 INFO [metro.replication.writer] Materializando parte 6 (path=raw/sqlserver_comments/_tmp/part_0006.parquet, rows=200000)
+2026-08-22 00:43:34,844 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0006.parquet
+2026-08-22 00:43:35,023 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=354.7 | memory_after_mb=354.7 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:36,393 INFO [metro.replication.writer] Materializando parte 7 (path=raw/sqlserver_comments/_tmp/part_0007.parquet, rows=200000)
+2026-08-22 00:43:36,394 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0007.parquet
+2026-08-22 00:43:36,617 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=362.9 | memory_after_mb=362.9 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:38,007 INFO [metro.replication.writer] Materializando parte 8 (path=raw/sqlserver_comments/_tmp/part_0008.parquet, rows=200000)
+2026-08-22 00:43:38,009 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0008.parquet
+2026-08-22 00:43:38,182 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=368.4 | memory_after_mb=368.4 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:39,494 INFO [metro.replication.writer] Materializando parte 9 (path=raw/sqlserver_comments/_tmp/part_0009.parquet, rows=200000)
+2026-08-22 00:43:39,495 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0009.parquet
+2026-08-22 00:43:39,675 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=372.6 | memory_after_mb=372.6 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:40,996 INFO [metro.replication.writer] Materializando parte 10 (path=raw/sqlserver_comments/_tmp/part_0010.parquet, rows=200000)
+2026-08-22 00:43:40,997 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0010.parquet
+2026-08-22 00:43:41,170 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=376.2 | memory_after_mb=376.2 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:42,501 INFO [metro.replication.writer] Materializando parte 11 (path=raw/sqlserver_comments/_tmp/part_0011.parquet, rows=200000)
+2026-08-22 00:43:42,501 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0011.parquet
+2026-08-22 00:43:42,688 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=386.3 | memory_after_mb=386.3 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:44,038 INFO [metro.replication.writer] Materializando parte 12 (path=raw/sqlserver_comments/_tmp/part_0012.parquet, rows=200000)
+2026-08-22 00:43:44,038 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0012.parquet
+2026-08-22 00:43:44,228 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=395.2 | memory_after_mb=395.2 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:45,550 INFO [metro.replication.writer] Materializando parte 13 (path=raw/sqlserver_comments/_tmp/part_0013.parquet, rows=200000)
+2026-08-22 00:43:45,551 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0013.parquet
+2026-08-22 00:43:45,733 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=402.0 | memory_after_mb=402.0 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:47,010 INFO [metro.replication.writer] Materializando parte 14 (path=raw/sqlserver_comments/_tmp/part_0014.parquet, rows=200000)
+2026-08-22 00:43:47,010 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0014.parquet
+2026-08-22 00:43:47,281 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=386.3 | memory_after_mb=386.3 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:48,895 INFO [metro.replication.writer] Materializando parte 15 (path=raw/sqlserver_comments/_tmp/part_0015.parquet, rows=200000)
+2026-08-22 00:43:48,895 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0015.parquet
+2026-08-22 00:43:49,069 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=386.9 | memory_after_mb=386.9 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:50,425 INFO [metro.replication.writer] Materializando parte 16 (path=raw/sqlserver_comments/_tmp/part_0016.parquet, rows=200000)
+2026-08-22 00:43:50,426 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0016.parquet
+2026-08-22 00:43:50,596 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=393.2 | memory_after_mb=393.2 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:51,999 INFO [metro.replication.writer] Materializando parte 17 (path=raw/sqlserver_comments/_tmp/part_0017.parquet, rows=200000)
+2026-08-22 00:43:52,000 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0017.parquet
+2026-08-22 00:43:52,190 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=390.3 | memory_after_mb=390.3 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:53,496 INFO [metro.replication.writer] Materializando parte 18 (path=raw/sqlserver_comments/_tmp/part_0018.parquet, rows=200000)
+2026-08-22 00:43:53,496 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0018.parquet
+2026-08-22 00:43:53,665 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=395.5 | memory_after_mb=395.5 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:54,923 INFO [metro.replication.writer] Materializando parte 19 (path=raw/sqlserver_comments/_tmp/part_0019.parquet, rows=200000)
+2026-08-22 00:43:54,923 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0019.parquet
+2026-08-22 00:43:55,099 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=381.5 | memory_after_mb=381.5 | freed_mb=0.0 | freed_percent=0.0 | collected=0
+2026-08-22 00:43:55,607 INFO [metro.replication.writer] Materializando parte 20 (path=raw/sqlserver_comments/_tmp/part_0020.parquet, rows=75183)
+2026-08-22 00:43:55,608 INFO [metro.targets.local] Gravando Parquet em local\raw\sqlserver_comments\_tmp\part_0020.parquet
+2026-08-22 00:43:55,713 INFO [metro.replication.writer] Garbage collection executado | memory_before_mb=379.6 | memory_after_mb=372.6 | freed_mb=7.0 | freed_percent=1.8 | collected=0
+2026-08-22 00:43:55,713 INFO [metro.replication.writer] Materialização em batches concluída (rows=3875183, files=20, read_batches=78, tracked_max=N/A)
+2026-08-22 00:43:55,714 INFO [metro.replication.full_load.strategy] Full Load concluído (table=dbo.Comments, rows=3875183)
+2026-08-22 00:43:55,770 INFO [metro.targets.local] Staging commitado (dataset=raw/sqlserver_comments)
+2026-08-22 00:43:55,771 INFO [metro.sources.sql.sqlserver] Conexão SQL Server encerrada (runtime=stackoverflow_sql_server_database)
+2026-08-22 00:43:57,890 INFO [metro.logging.handler] Execução finalizada (id=5, status=success, rows=3875183, duration=31.75s)
+2026-08-22 00:43:57,890 INFO [metro.cli.main] Replicação concluída (table=dbo.Comments)

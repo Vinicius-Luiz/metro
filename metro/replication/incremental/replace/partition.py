@@ -72,7 +72,7 @@ class ReplacePartitionStrategy(ReplicationStrategy):
         staging_path = target.begin_staging(dataset_path)
 
         try:
-            write_partitioned(
+            total_rows, _ = write_partitioned(
                 source=source,
                 target=target,
                 staging_path=staging_path,
@@ -82,12 +82,14 @@ class ReplacePartitionStrategy(ReplicationStrategy):
                 metadata_context=self._metadata_context,
             )
             target.commit_staging(dataset_path, partitions=partitions)
+            self._rows_processed = total_rows
         except Exception:
             target.discard_staging(dataset_path)
             raise
 
         logger.info(
-            "Replace/Partition concluído (table=%s, partitions=%s)",
+            "Replace/Partition concluído (table=%s, partitions=%s, rows=%s)",
             table.qualified_name,
             len(partitions),
+            total_rows,
         )

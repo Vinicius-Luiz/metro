@@ -75,7 +75,7 @@ class FullLoadStrategy(ReplicationStrategy):
             self._reference_column,
             self._granularity,
         )
-        write_partitioned(
+        total_rows, _ = write_partitioned(
             source=source,
             target=target,
             staging_path=staging_path,
@@ -84,9 +84,11 @@ class FullLoadStrategy(ReplicationStrategy):
             allowed_partitions=None,
             metadata_context=self._metadata_context,
         )
+        self._rows_processed = total_rows
         logger.info(
-            "Full Load particionado concluído (table=%s)",
+            "Full Load particionado concluído (table=%s, rows=%s)",
             table.qualified_name,
+            total_rows,
         )
 
     def _execute_single(
@@ -119,6 +121,7 @@ class FullLoadStrategy(ReplicationStrategy):
             dataframe,
             metadata_context=self._metadata_context,
         )
+        self._rows_processed = dataframe.height
         logger.info(
             "Full Load concluído (table=%s, rows=%s)",
             table.qualified_name,
@@ -156,6 +159,7 @@ class FullLoadStrategy(ReplicationStrategy):
             track_max=None,
             metadata_context=self._metadata_context,
         )
+        self._rows_processed = total_rows
 
         logger.info(
             "Full Load concluído (table=%s, rows=%s)",
